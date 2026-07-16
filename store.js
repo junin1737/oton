@@ -4,7 +4,7 @@
  */
 const OtonStore = (() => {
   const DB_NAME = 'oton-imoveis';
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   const SESSION_KEY = 'oton-session';
   const MIN_PHOTO_SLOTS = 20;
 
@@ -18,21 +18,21 @@ const OtonStore = (() => {
     {
       id: 'user-admin',
       name: 'Óton Rodrigo',
-      email: 'admin@oton.imoveis',
+      email: 'admin@oton.com.br',
       password: 'oton2026',
       role: 'admin'
     },
     {
       id: 'user-prop',
       name: 'Maria Proprietária',
-      email: 'proprietario@oton.imoveis',
+      email: 'proprietario@oton.com.br',
       password: 'prop2026',
       role: 'proprietario'
     },
     {
       id: 'user-inq',
       name: 'João Inquilino',
-      email: 'inquilino@oton.imoveis',
+      email: 'inquilino@oton.com.br',
       password: 'inq2026',
       role: 'inquilino'
     }
@@ -226,15 +226,51 @@ const OtonStore = (() => {
         }
       };
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(request.error || new Error('Falha ao abrir banco local'));
+      request.onblocked = () => {
+        console.warn('IndexedDB bloqueado. Feche outras abas do site e tente de novo.');
+      };
     });
     return dbPromise;
   }
 
+  function txDone(tx) {
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error || new Error('Transação abortada'));
+    });
+  }
+
+  function req(request) {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  function uid(prefix = 'id') {
+    return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  /** Hash estável sem depender de crypto.subtle (funciona em qualquer contexto). */
   async function hashPassword(password) {
-    const data = new TextEncoder().encode(String(password));
-    const digest = await crypto.subtle.digest('SHA-256', data);
-    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    const input = `oton-v1:${String(password)}`;
+    if (globalThis.crypto?.subtle) {
+      try {
+        const data = new TextEncoder().encode(input);
+        const digest = await crypto.subtle.digest('SHA-256', data);
+        return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+      } catch (error) {
+        console.warn('crypto.subtle indisponível, usando fallback.', error);
+      }
+    }
+    let hash = 2166136261;
+    for (let i = 0; i < input.length; i += 1) {
+      hash ^= input.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `fb_${(hash >>> 0).toString(16)}`;
   }
 
   function publicUser(user) {
@@ -248,12 +284,42 @@ const OtonStore = (() => {
     };
   }
 
+  function createSession(user) {
+    const session = {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      roleLabel: ROLES[user.role]?.label || user.role,
+      loggedAt: Date.now()
+    };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    sessionStorage.removeItem('oton-admin-session');
+    return session;
+  }
+
+  function findDemoUser(email, password) {
+    const normalized = String(email || '').trim().toLowerCase();
+    return DEFAULT_USERS.find((user) => user.email === normalized && user.password === String(password || '')) || null;
+  }
+
   async function ensureUsersSeeded() {
     const db = await openDb();
+    if (!db.objectStoreNames.contains('users')) {
+      dbPromise = null;
+      throw new Error('Base de usuários indisponível. Atualize a página.');
+    }
+
     const metaTx = db.transaction('meta', 'readonly');
-    const seeded = await req(metaTx.objectStore('meta').get('usersSeeded'));
+    const seedVersion = await req(metaTx.objectStore('meta').get('usersSeedVersion'));
     await txDone(metaTx);
-    if (seeded?.value) return;
+
+    const countTx = db.transaction('users', 'readonly');
+    const existingUsers = await req(countTx.objectStore('users').getAll());
+    await txDone(countTx);
+
+    const needsReseed = !seedVersion || seedVersion.value < 3 || existingUsers.length < DEFAULT_USERS.length;
+    if (!needsReseed) return;
 
     const prepared = [];
     for (const item of DEFAULT_USERS) {
@@ -270,8 +336,15 @@ const OtonStore = (() => {
 
     const write = db.transaction(['meta', 'users'], 'readwrite');
     const users = write.objectStore('users');
+    // Remove usuários demo antigos com e-mail .imoveis
+    existingUsers.forEach((user) => {
+      if (String(user.email || '').endsWith('@oton.imoveis') || String(user.id || '').startsWith('user-')) {
+        users.delete(user.id);
+      }
+    });
     prepared.forEach((user) => users.put(user));
     write.objectStore('meta').put({ key: 'usersSeeded', value: true });
+    write.objectStore('meta').put({ key: 'usersSeedVersion', value: 3 });
     await txDone(write);
   }
 
@@ -285,23 +358,29 @@ const OtonStore = (() => {
   }
 
   async function login(email, password) {
-    const user = await findUserByEmail(email);
-    if (!user) return { ok: false, error: 'E-mail ou senha inválidos.' };
-    const passwordHash = await hashPassword(password);
-    if (passwordHash !== user.passwordHash) {
-      return { ok: false, error: 'E-mail ou senha inválidos.' };
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const plainPassword = String(password || '');
+
+    try {
+      const user = await findUserByEmail(normalizedEmail);
+      if (user) {
+        const passwordHash = await hashPassword(plainPassword);
+        if (passwordHash === user.passwordHash) {
+          const session = createSession(user);
+          return { ok: true, user: session, home: ROLES[user.role]?.home || 'login.html' };
+        }
+      }
+    } catch (error) {
+      console.warn('Login via IndexedDB falhou, tentando contas demo.', error);
     }
-    const session = {
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      roleLabel: ROLES[user.role]?.label || user.role,
-      loggedAt: Date.now()
-    };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    sessionStorage.removeItem('oton-admin-session');
-    return { ok: true, user: session, home: ROLES[user.role]?.home || 'login.html' };
+
+    const demo = findDemoUser(normalizedEmail, plainPassword);
+    if (demo) {
+      const session = createSession(demo);
+      return { ok: true, user: session, home: ROLES[demo.role]?.home || 'login.html' };
+    }
+
+    return { ok: false, error: 'E-mail ou senha inválidos.' };
   }
 
   function getSession() {
@@ -324,7 +403,8 @@ const OtonStore = (() => {
   function requireAuth(roles = null) {
     const session = getSession();
     if (!session) {
-      const next = encodeURIComponent(`${location.pathname.split('/').pop()}${location.search}`);
+      const page = location.pathname.split('/').pop() || 'index.html';
+      const next = encodeURIComponent(`${page}${location.search}`);
       location.href = `login.html?next=${next}`;
       return null;
     }
@@ -369,26 +449,6 @@ const OtonStore = (() => {
 
   function roleHome(role) {
     return ROLES[role]?.home || 'login.html';
-  }
-
-
-  function txDone(tx) {
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error || new Error('Transação abortada'));
-    });
-  }
-
-  function req(request) {
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  function uid(prefix = 'id') {
-    return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
   async function ensureSeeded() {

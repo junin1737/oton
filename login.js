@@ -3,9 +3,9 @@
   const errorEl = document.querySelector('#login-error');
   const tabs = document.querySelectorAll('.role-tab');
   const demos = {
-    admin: { email: 'admin@oton.imoveis', password: 'oton2026' },
-    proprietario: { email: 'proprietario@oton.imoveis', password: 'prop2026' },
-    inquilino: { email: 'inquilino@oton.imoveis', password: 'inq2026' }
+    admin: { email: 'admin@oton.com.br', password: 'oton2026' },
+    proprietario: { email: 'proprietario@oton.com.br', password: 'prop2026' },
+    inquilino: { email: 'inquilino@oton.com.br', password: 'inq2026' }
   };
 
   const params = new URLSearchParams(location.search);
@@ -21,10 +21,7 @@
     tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.role === role));
     form.roleHint.value = role;
     const demo = demos[role];
-    if (demo && !form.email.value) {
-      form.email.value = demo.email;
-      form.password.value = demo.password;
-    } else if (demo) {
+    if (demo) {
       form.email.value = demo.email;
       form.password.value = demo.password;
     }
@@ -46,24 +43,18 @@
     submit.textContent = 'Entrando...';
 
     try {
-      await OtonStore.ensureUsersSeeded();
       const result = await OtonStore.login(email, password);
       if (!result.ok) {
-        errorEl.textContent = result.error;
+        errorEl.textContent = result.error || 'E-mail ou senha inválidos.';
         errorEl.hidden = false;
         return;
       }
 
-      const hint = form.roleHint.value;
-      if (hint && result.user.role !== hint) {
-        // Still allow login, but go to the real role home.
-      }
-
-      const safeNext = next && !next.includes('://') ? next : null;
-      location.href = safeNext || result.home;
+      const safeNext = next && !next.includes('://') && !next.startsWith('//') ? next : null;
+      window.location.assign(safeNext || result.home);
     } catch (error) {
       console.error(error);
-      errorEl.textContent = 'Não foi possível entrar. Tente novamente.';
+      errorEl.textContent = error?.message || 'Não foi possível entrar. Tente novamente.';
       errorEl.hidden = false;
     } finally {
       submit.disabled = false;
