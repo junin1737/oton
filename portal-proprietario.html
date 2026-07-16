@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Área do Proprietário | Óton Rodrigo Imóveis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body class="portal-shell">
+  <header class="portal-top">
+    <a class="portal-brand" href="index.html">
+      <img src="assets/logo-oton.png" alt="Óton Rodrigo" />
+      <div>
+        <strong>Área do proprietário</strong>
+        <span id="user-label">Carregando...</span>
+      </div>
+    </a>
+    <div class="portal-actions">
+      <span class="portal-user" id="user-email"></span>
+      <a class="btn-portal ghost" href="index.html">Ver site</a>
+      <button class="btn-portal yellow" type="button" id="logout-btn">Sair</button>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <section class="portal-hero">
+      <p class="eyebrow">Portal do proprietário</p>
+      <h1>Acompanhe seus imóveis com tranquilidade</h1>
+      <p>Em breve você verá aqui o status dos anúncios, visitas agendadas, propostas recebidas e repasses. Por enquanto, esta área já está protegida por login e pronta para evoluir.</p>
+    </section>
+
+    <section class="portal-grid">
+      <article class="portal-stat">
+        <small>IMÓVEIS VINCULADOS</small>
+        <strong>Em breve</strong>
+        <p>Lista dos imóveis cadastrados em seu nome.</p>
+      </article>
+      <article class="portal-stat">
+        <small>PROPOSTAS</small>
+        <strong>0</strong>
+        <p>Negociações em andamento com interessados.</p>
+      </article>
+      <article class="portal-stat">
+        <small>VISITAS</small>
+        <strong>0</strong>
+        <p>Agendamentos confirmados para esta semana.</p>
+      </article>
+    </section>
+
+    <section class="portal-panel">
+      <h2 style="margin:0 0 8px;font:700 24px 'Playfair Display',serif;color:#062c56;">Próximos passos</h2>
+      <div class="portal-list">
+        <div class="portal-item">
+          <div>
+            <h3>Cadastro do imóvel pelo corretor</h3>
+            <p>O administrador publica o anúncio e vincula ao seu perfil.</p>
+          </div>
+          <span class="portal-badge">Planejado</span>
+        </div>
+        <div class="portal-item">
+          <div>
+            <h3>Aprovação de propostas</h3>
+            <p>Você recebe alertas e confirma ou recusa pelo portal.</p>
+          </div>
+          <span class="portal-badge">Planejado</span>
+        </div>
+        <div class="portal-item">
+          <div>
+            <h3>Extrato de locação</h3>
+            <p>Acompanhe repasses e histórico financeiro do imóvel.</p>
+          </div>
+          <span class="portal-badge">Planejado</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="store.js"></script>
+  <script>
+    const session = OtonStore.requireAuth('proprietario');
+    if (session) {
+      document.querySelector('#user-label').textContent = session.name;
+      document.querySelector('#user-email').textContent = session.email;
+      document.querySelector('#logout-btn').addEventListener('click', () => {
+        OtonStore.logout();
+        location.href = 'login.html';
+      });
+    }
+  </script>
+</body>
+</html>

@@ -4,11 +4,40 @@
  */
 const OtonStore = (() => {
   const DB_NAME = 'oton-imoveis';
-  const DB_VERSION = 1;
-  const AUTH_KEY = 'oton-admin-session';
-  const PASS_KEY = 'oton-admin-pass';
-  const DEFAULT_PASS = 'oton2026';
+  const DB_VERSION = 2;
+  const SESSION_KEY = 'oton-session';
   const MIN_PHOTO_SLOTS = 20;
+
+  const ROLES = {
+    admin: { id: 'admin', label: 'Administrador', home: 'admin.html' },
+    proprietario: { id: 'proprietario', label: 'Proprietário', home: 'portal-proprietario.html' },
+    inquilino: { id: 'inquilino', label: 'Inquilino', home: 'portal-inquilino.html' }
+  };
+
+  const DEFAULT_USERS = [
+    {
+      id: 'user-admin',
+      name: 'Óton Rodrigo',
+      email: 'admin@oton.imoveis',
+      password: 'oton2026',
+      role: 'admin'
+    },
+    {
+      id: 'user-prop',
+      name: 'Maria Proprietária',
+      email: 'proprietario@oton.imoveis',
+      password: 'prop2026',
+      role: 'proprietario'
+    },
+    {
+      id: 'user-inq',
+      name: 'João Inquilino',
+      email: 'inquilino@oton.imoveis',
+      password: 'inq2026',
+      role: 'inquilino'
+    }
+  ];
+
 
   const SEED = [
     {
@@ -190,12 +219,158 @@ const OtonStore = (() => {
           const photos = db.createObjectStore('photos', { keyPath: 'id' });
           photos.createIndex('propertyId', 'propertyId', { unique: false });
         }
+        if (!db.objectStoreNames.contains('users')) {
+          const users = db.createObjectStore('users', { keyPath: 'id' });
+          users.createIndex('email', 'email', { unique: true });
+          users.createIndex('role', 'role', { unique: false });
+        }
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
     return dbPromise;
   }
+
+  async function hashPassword(password) {
+    const data = new TextEncoder().encode(String(password));
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function publicUser(user) {
+    if (!user) return null;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      roleLabel: ROLES[user.role]?.label || user.role
+    };
+  }
+
+  async function ensureUsersSeeded() {
+    const db = await openDb();
+    const metaTx = db.transaction('meta', 'readonly');
+    const seeded = await req(metaTx.objectStore('meta').get('usersSeeded'));
+    await txDone(metaTx);
+    if (seeded?.value) return;
+
+    const prepared = [];
+    for (const item of DEFAULT_USERS) {
+      prepared.push({
+        id: item.id,
+        name: item.name,
+        email: item.email.toLowerCase(),
+        passwordHash: await hashPassword(item.password),
+        role: item.role,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
+    }
+
+    const write = db.transaction(['meta', 'users'], 'readwrite');
+    const users = write.objectStore('users');
+    prepared.forEach((user) => users.put(user));
+    write.objectStore('meta').put({ key: 'usersSeeded', value: true });
+    await txDone(write);
+  }
+
+  async function findUserByEmail(email) {
+    await ensureUsersSeeded();
+    const db = await openDb();
+    const tx = db.transaction('users', 'readonly');
+    const user = await req(tx.objectStore('users').index('email').get(String(email || '').trim().toLowerCase()));
+    await txDone(tx);
+    return user || null;
+  }
+
+  async function login(email, password) {
+    const user = await findUserByEmail(email);
+    if (!user) return { ok: false, error: 'E-mail ou senha inválidos.' };
+    const passwordHash = await hashPassword(password);
+    if (passwordHash !== user.passwordHash) {
+      return { ok: false, error: 'E-mail ou senha inválidos.' };
+    }
+    const session = {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      roleLabel: ROLES[user.role]?.label || user.role,
+      loggedAt: Date.now()
+    };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    sessionStorage.removeItem('oton-admin-session');
+    return { ok: true, user: session, home: ROLES[user.role]?.home || 'login.html' };
+  }
+
+  function getSession() {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function isAuthenticated(roles = null) {
+    const session = getSession();
+    if (!session) return false;
+    if (!roles) return true;
+    const allowed = Array.isArray(roles) ? roles : [roles];
+    return allowed.includes(session.role);
+  }
+
+  function requireAuth(roles = null) {
+    const session = getSession();
+    if (!session) {
+      const next = encodeURIComponent(`${location.pathname.split('/').pop()}${location.search}`);
+      location.href = `login.html?next=${next}`;
+      return null;
+    }
+    if (roles) {
+      const allowed = Array.isArray(roles) ? roles : [roles];
+      if (!allowed.includes(session.role)) {
+        location.href = ROLES[session.role]?.home || 'login.html';
+        return null;
+      }
+    }
+    return session;
+  }
+
+  function logout() {
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem('oton-admin-session');
+  }
+
+  async function changePassword(userId, currentPassword, nextPassword) {
+    await ensureUsersSeeded();
+    const db = await openDb();
+    const readTx = db.transaction('users', 'readonly');
+    const user = await req(readTx.objectStore('users').get(userId));
+    await txDone(readTx);
+    if (!user) throw new Error('Usuário não encontrado.');
+
+    const currentHash = await hashPassword(currentPassword);
+    if (currentHash !== user.passwordHash) {
+      throw new Error('Senha atual incorreta.');
+    }
+
+    const passwordHash = await hashPassword(nextPassword);
+    const writeTx = db.transaction('users', 'readwrite');
+    writeTx.objectStore('users').put({
+      ...user,
+      passwordHash,
+      updatedAt: Date.now()
+    });
+    await txDone(writeTx);
+    return publicUser(user);
+  }
+
+  function roleHome(role) {
+    return ROLES[role]?.home || 'login.html';
+  }
+
 
   function txDone(tx) {
     return new Promise((resolve, reject) => {
@@ -427,30 +602,6 @@ const OtonStore = (() => {
     return hydrated;
   }
 
-  function isAuthenticated() {
-    return sessionStorage.getItem(AUTH_KEY) === '1';
-  }
-
-  function logout() {
-    sessionStorage.removeItem(AUTH_KEY);
-  }
-
-  function getPassword() {
-    return localStorage.getItem(PASS_KEY) || DEFAULT_PASS;
-  }
-
-  function setPassword(next) {
-    localStorage.setItem(PASS_KEY, next);
-  }
-
-  function login(password) {
-    if (password === getPassword()) {
-      sessionStorage.setItem(AUTH_KEY, '1');
-      return true;
-    }
-    return false;
-  }
-
   /**
    * Comprime imagem mantendo boa qualidade para anúncio.
    * Aceita dezenas de fotos sem estourar o armazenamento local.
@@ -483,7 +634,7 @@ const OtonStore = (() => {
 
   return {
     MIN_PHOTO_SLOTS,
-    DEFAULT_PASS,
+    ROLES,
     listProperties,
     listPublicProperties,
     getProperty,
@@ -495,8 +646,11 @@ const OtonStore = (() => {
     isAuthenticated,
     login,
     logout,
-    getPassword,
-    setPassword,
+    getSession,
+    requireAuth,
+    changePassword,
+    roleHome,
+    ensureUsersSeeded,
     uid
   };
 })();

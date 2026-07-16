@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Área do Inquilino | Óton Rodrigo Imóveis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body class="portal-shell">
+  <header class="portal-top">
+    <a class="portal-brand" href="index.html">
+      <img src="assets/logo-oton.png" alt="Óton Rodrigo" />
+      <div>
+        <strong>Área do inquilino</strong>
+        <span id="user-label">Carregando...</span>
+      </div>
+    </a>
+    <div class="portal-actions">
+      <span class="portal-user" id="user-email"></span>
+      <a class="btn-portal ghost" href="index.html">Ver site</a>
+      <button class="btn-portal yellow" type="button" id="logout-btn">Sair</button>
+    </div>
+  </header>
+
+  <main class="portal-main">
+    <section class="portal-hero">
+      <p class="eyebrow">Portal do inquilino</p>
+      <h1>Seu contrato e seu imóvel em um só lugar</h1>
+      <p>Esta área será o ponto de acesso para boletos, documentos, solicitações de manutenção e contato direto com a imobiliária. O login já está ativo para o próximo passo.</p>
+    </section>
+
+    <section class="portal-grid">
+      <article class="portal-stat">
+        <small>CONTRATO</small>
+        <strong>Em breve</strong>
+        <p>Visualize vigência, valor e condições.</p>
+      </article>
+      <article class="portal-stat">
+        <small>BOLETOS</small>
+        <strong>0</strong>
+        <p>Mensalidades disponíveis para pagamento.</p>
+      </article>
+      <article class="portal-stat">
+        <small>CHAMADOS</small>
+        <strong>0</strong>
+        <p>Solicitações de manutenção abertas.</p>
+      </article>
+    </section>
+
+    <section class="portal-panel">
+      <h2 style="margin:0 0 8px;font:700 24px 'Playfair Display',serif;color:#062c56;">O que você poderá fazer</h2>
+      <div class="portal-list">
+        <div class="portal-item">
+          <div>
+            <h3>Baixar 2ª via do boleto</h3>
+            <p>Pagamentos organizados por competência.</p>
+          </div>
+          <span class="portal-badge">Planejado</span>
+        </div>
+        <div class="portal-item">
+          <div>
+            <h3>Abrir chamado de manutenção</h3>
+            <p>Envie fotos e descreva o problema do imóvel.</p>
+          </div>
+          <span class="portal-badge">Planejado</span>
+        </div>
+        <div class="portal-item">
+          <div>
+            <h3>Falar com a imobiliária</h3>
+            <p>Canal direto com o corretor responsável.</p>
+          </div>
+          <span class="portal-badge">Planejado</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="store.js"></script>
+  <script>
+    const session = OtonStore.requireAuth('inquilino');
+    if (session) {
+      document.querySelector('#user-label').textContent = session.name;
+      document.querySelector('#user-email').textContent = session.email;
+      document.querySelector('#logout-btn').addEventListener('click', () => {
+        OtonStore.logout();
+        location.href = 'login.html';
+      });
+    }
+  </script>
+</body>
+</html>

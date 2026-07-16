@@ -11,27 +11,13 @@
   <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
-  <div id="login-view" class="login-wrap" hidden>
-    <form class="login-card" id="login-form">
-      <img src="assets/logo-oton.png" alt="Óton Rodrigo" />
-      <h1>Painel admin</h1>
-      <p>Cadastre imóveis, preços e galerias com no mínimo 20 fotos por anúncio.</p>
-      <label>
-        SENHA
-        <input type="password" name="password" required autocomplete="current-password" placeholder="Digite a senha" />
-      </label>
-      <button class="btn btn-yellow" type="submit">Entrar</button>
-      <p class="login-note">Senha inicial: <strong>oton2026</strong>. Os dados ficam salvos neste navegador (IndexedDB). Para uso em vários dispositivos, depois podemos migrar para um backend.</p>
-    </form>
-  </div>
-
   <div id="app-view" class="admin-shell" hidden>
     <header class="admin-top">
       <a class="admin-brand" href="index.html" target="_blank" rel="noopener">
         <img src="assets/logo-oton.png" alt="Óton Rodrigo" />
         <div>
           <strong>Painel administrativo</strong>
-          <span>Óton Rodrigo Imóveis</span>
+          <span id="admin-user-label">Óton Rodrigo Imóveis</span>
         </div>
       </a>
       <div class="admin-top-actions">
@@ -187,7 +173,7 @@
             5. Salve e confira em <a href="imoveis.html" target="_blank" rel="noopener">Imóveis</a>.
           </p>
           <p class="hint">
-            Dica: use as setas nas miniaturas para reordenar. Remova fotos indesejadas antes de salvar.
+            Acesso pelo login do site. Proprietários e inquilinos entram pela mesma página e vão para suas áreas.
           </p>
         </aside>
       </section>

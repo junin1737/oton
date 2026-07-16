@@ -1,7 +1,8 @@
 (() => {
-  const loginView = document.querySelector('#login-view');
+  const session = OtonStore.requireAuth('admin');
+  if (!session) return;
+
   const appView = document.querySelector('#app-view');
-  const loginForm = document.querySelector('#login-form');
   const form = document.querySelector('#property-form');
   const tbody = document.querySelector('#properties-tbody');
   const emptyList = document.querySelector('#empty-list');
@@ -14,6 +15,9 @@
   const formTitle = document.querySelector('#form-title');
   const deleteBtn = document.querySelector('#delete-btn');
   const MIN_SLOTS = OtonStore.MIN_PHOTO_SLOTS;
+
+  appView.hidden = false;
+  document.querySelector('#admin-user-label').textContent = `${session.name} · ${session.email}`;
 
   /** @type {{id:string,url:string,name:string,blob?:Blob,existing?:boolean}[]} */
   let draftPhotos = [];
@@ -263,42 +267,30 @@
   }
 
   function showApp() {
-    loginView.hidden = true;
-    appView.hidden = false;
     resetForm();
     renderList();
   }
 
-  function showLogin() {
-    appView.hidden = true;
-    loginView.hidden = false;
-  }
-
-  // Events
-  loginForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const password = new FormData(loginForm).get('password');
-    if (OtonStore.login(String(password || ''))) {
-      showApp();
-    } else {
-      toast('Senha incorreta.', 'err');
-    }
-  });
-
   document.querySelector('#logout-btn').addEventListener('click', () => {
     OtonStore.logout();
-    showLogin();
+    location.href = 'login.html';
   });
 
-  document.querySelector('#change-pass-btn').addEventListener('click', () => {
-    const next = prompt('Digite a nova senha do painel:');
+  document.querySelector('#change-pass-btn').addEventListener('click', async () => {
+    const current = prompt('Digite a senha atual:');
+    if (current === null) return;
+    const next = prompt('Digite a nova senha (mín. 4 caracteres):');
     if (!next) return;
     if (next.length < 4) {
       toast('Use pelo menos 4 caracteres.', 'err');
       return;
     }
-    OtonStore.setPassword(next);
-    toast('Senha atualizada neste navegador.');
+    try {
+      await OtonStore.changePassword(session.userId, current, next);
+      toast('Senha atualizada.');
+    } catch (error) {
+      toast(error.message || 'Não foi possível alterar a senha.', 'err');
+    }
   });
 
   document.querySelector('#new-property-btn').addEventListener('click', () => {
@@ -377,6 +369,5 @@
     renderPhotos();
   });
 
-  if (OtonStore.isAuthenticated()) showApp();
-  else showLogin();
+  showApp();
 })();
