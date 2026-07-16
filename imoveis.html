@@ -71,9 +71,9 @@
       </div>
       <div class="listing-tools">
         <button class="tool-btn" type="button" data-toggle-filters>
-          Mais filtros <span class="count" data-filter-count>1</span>
+          Filtros <span class="count" data-filter-count>0</span>
         </button>
-        <label>
+        <label class="sort-field">
           <select name="ordem" aria-label="Ordenar">
             <option value="recentes">Recentes</option>
             <option value="menor">Menor valor</option>
@@ -84,19 +84,24 @@
     </div>
 
     <div class="listing-layout">
-      <aside class="panel" data-filter-panel>
-        <h2>Filtros</h2>
+      <aside class="filters-panel" data-filter-panel>
+        <div class="filters-panel-head">
+          <h2>Filtros</h2>
+          <p>Refine a busca por finalidade, tipo e localização.</p>
+        </div>
 
         <div class="panel-group">
           <span>FINALIDADE</span>
-          <div class="chip-row">
+          <div class="chip-row chip-row-deal">
+            <button class="chip" type="button" data-deal-chip="">Todos</button>
             <button class="chip" type="button" data-deal-chip="venda">À venda</button>
             <button class="chip" type="button" data-deal-chip="aluguel">Para alugar</button>
+            <button class="chip" type="button" data-deal-chip="ambos">Venda e aluguel</button>
           </div>
         </div>
 
         <div class="panel-group">
-          <span>TIPO</span>
+          <span>TIPO DE IMÓVEL</span>
           <div class="chip-row">
             <button class="chip" type="button" data-type-chip="Todos">Todos</button>
             <button class="chip" type="button" data-type-chip="Casa">Casa</button>
@@ -114,10 +119,16 @@
         </div>
 
         <div class="panel-group">
-          <span>PREÇO</span>
+          <span>PREÇO (R$)</span>
           <div class="price-row">
-            <input name="min" type="number" min="0" placeholder="Mínimo" />
-            <input name="max" type="number" min="0" placeholder="Máximo" />
+            <label class="price-field">
+              <small>Mínimo</small>
+              <input name="min" type="number" min="0" placeholder="0" />
+            </label>
+            <label class="price-field">
+              <small>Máximo</small>
+              <input name="max" type="number" min="0" placeholder="Sem limite" />
+            </label>
           </div>
         </div>
 
@@ -138,7 +149,7 @@
         </div>
       </aside>
 
-      <section>
+      <section class="listing-results">
         <p class="results-meta" data-results-meta></p>
         <div class="property-grid" data-listing-grid></div>
         <div class="empty-state" data-empty-state hidden>
@@ -148,6 +159,37 @@
         </div>
       </section>
     </div>
+
+    <section class="office-map" id="escritorio">
+      <div class="office-map-info">
+        <p class="eyebrow">Nosso escritório</p>
+        <h2>Venha nos visitar</h2>
+        <p>Atendimento presencial em Tiros/MG, com equipe pronta para ajudar na compra, venda ou locação.</p>
+        <div class="office-details">
+          <div>
+            <small>ENDEREÇO</small>
+            <span>Rua Teotônio Dias, nº 767<br>Centro · Tiros/MG</span>
+          </div>
+          <div>
+            <small>TELEFONES</small>
+            <a href="tel:+5534998336147">(34) 99833-6147</a>
+            <a href="tel:+5534993112645">(34) 99311-2645</a>
+          </div>
+          <div>
+            <small>WHATSAPP</small>
+            <a href="https://wa.me/5534993112645" target="_blank" rel="noopener">Chamar no WhatsApp</a>
+          </div>
+        </div>
+      </div>
+      <div class="office-map-frame">
+        <iframe
+          title="Localização do escritório Óton Rodrigo Imóveis"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          src="https://maps.google.com/maps?q=Rua%20Teot%C3%B4nio%20Dias%20767%2C%20Centro%2C%20Tiros%2C%20MG&z=17&output=embed">
+        </iframe>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">
@@ -164,8 +206,8 @@
         <h3>Imóveis</h3>
         <a href="imoveis.html?deal=venda">À venda</a>
         <a href="imoveis.html?deal=aluguel">Para alugar</a>
+        <a href="imoveis.html?deal=ambos">Venda e aluguel</a>
         <a href="imoveis.html?deal=venda&tipo=Casa">Casas à venda</a>
-        <a href="imoveis.html?deal=aluguel&tipo=Apartamento">Apartamentos para alugar</a>
       </div>
       <div class="footer-col">
         <h3>Região</h3>
@@ -178,8 +220,8 @@
         <h3>Contato</h3>
         <a href="tel:+5534998336147">(34) 99833-6147</a>
         <a href="https://wa.me/5534993112645" target="_blank" rel="noopener">(34) 99311-2645</a>
-        <a href="login.html">Área do cliente</a>
-        <a href="index.html#anunciar">Anunciar imóvel</a>
+        <a href="login.html">Área administrativa</a>
+        <a href="#escritorio">Como chegar</a>
       </div>
     </div>
     <div class="footer-bottom">

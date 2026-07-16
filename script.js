@@ -5,11 +5,23 @@ let PROPERTIES = [];
 function formatPrice(property) {
   if (!property.price) return 'Consulte o valor';
   const value = property.price.toLocaleString('pt-BR');
-  return property.deal === 'aluguel' ? `R$ ${value}/mês` : `R$ ${value}`;
+  if (property.deal === 'aluguel') return `R$ ${value}/mês`;
+  if (property.deal === 'ambos') return `R$ ${value}`;
+  return `R$ ${value}`;
 }
 
 function dealLabel(deal) {
-  return deal === 'aluguel' ? 'Para alugar' : 'À venda';
+  if (deal === 'aluguel') return 'Para alugar';
+  if (deal === 'ambos') return 'Venda e aluguel';
+  return 'À venda';
+}
+
+function matchesDeal(itemDeal, filterDeal) {
+  if (!filterDeal) return true;
+  if (filterDeal === 'venda') return itemDeal === 'venda' || itemDeal === 'ambos';
+  if (filterDeal === 'aluguel') return itemDeal === 'aluguel' || itemDeal === 'ambos';
+  if (filterDeal === 'ambos') return itemDeal === 'ambos';
+  return itemDeal === filterDeal;
 }
 
 function buildSpecs(property) {
@@ -222,8 +234,8 @@ function filterProperties(source, params) {
   const beds = Number(params.get('quartos') || 0);
   const sort = params.get('ordem') || 'recentes';
 
-  if (deal === 'venda' || deal === 'aluguel') {
-    list = list.filter((item) => item.deal === deal);
+  if (deal === 'venda' || deal === 'aluguel' || deal === 'ambos') {
+    list = list.filter((item) => matchesDeal(item.deal, deal));
   }
   if (type && type !== 'Todos') {
     list = list.filter((item) => item.type.toLowerCase() === type.toLowerCase());
@@ -264,7 +276,13 @@ function renderListing() {
 
   if (title) {
     const dealParam = params.get('deal');
-    const dealText = dealParam === 'aluguel' ? 'para alugar' : dealParam === 'venda' ? 'à venda' : '';
+    const dealText = dealParam === 'aluguel'
+      ? 'para alugar'
+      : dealParam === 'venda'
+        ? 'à venda'
+        : dealParam === 'ambos'
+          ? 'para venda e aluguel'
+          : '';
     const type = params.get('tipo');
     const where = params.get('onde');
     const plurals = {
@@ -309,7 +327,8 @@ function syncListingControls() {
   const sort = params.get('ordem') || 'recentes';
 
   document.querySelectorAll('[data-deal-chip]').forEach((chip) => {
-    chip.classList.toggle('active', Boolean(deal) && chip.dataset.dealChip === deal);
+    const value = chip.dataset.dealChip || '';
+    chip.classList.toggle('active', value === deal);
   });
   document.querySelectorAll('[data-type-chip]').forEach((chip) => {
     chip.classList.toggle('active', chip.dataset.typeChip === type);
@@ -387,7 +406,7 @@ function setupListingPage() {
   renderListing();
 
   document.querySelectorAll('[data-deal-chip]').forEach((chip) => {
-    chip.addEventListener('click', () => updateParams({ deal: chip.dataset.dealChip }));
+    chip.addEventListener('click', () => updateParams({ deal: chip.dataset.dealChip || '' }));
   });
   document.querySelectorAll('[data-type-chip]').forEach((chip) => {
     chip.addEventListener('click', () => updateParams({ tipo: chip.dataset.typeChip }));

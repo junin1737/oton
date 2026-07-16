@@ -38,7 +38,15 @@
 
   function formatPrice(property) {
     const value = Number(property.price || 0).toLocaleString('pt-BR');
-    return property.deal === 'aluguel' ? `R$ ${value}/mês` : `R$ ${value}`;
+    if (property.deal === 'aluguel') return `R$ ${value}/mês`;
+    if (property.deal === 'ambos') return `R$ ${value}`;
+    return `R$ ${value}`;
+  }
+
+  function dealBadge(deal) {
+    if (deal === 'aluguel') return { className: 'rent', label: 'Aluguel' };
+    if (deal === 'ambos') return { className: 'both', label: 'Venda e aluguel' };
+    return { className: '', label: 'Venda' };
   }
 
   function revokeUrls() {
@@ -174,7 +182,11 @@
     const term = document.querySelector('#search-list').value.trim().toLowerCase();
     const deal = document.querySelector('#filter-deal').value;
     return cache.filter((item) => {
-      if (deal && item.deal !== deal) return false;
+      if (deal === 'venda') return item.deal === 'venda' || item.deal === 'ambos';
+      if (deal === 'aluguel') return item.deal === 'aluguel' || item.deal === 'ambos';
+      if (deal === 'ambos') return item.deal === 'ambos';
+      return true;
+    }).filter((item) => {
       if (!term) return true;
       const hay = `${item.id} ${item.title} ${item.neighborhood} ${item.city} ${item.type}`.toLowerCase();
       return hay.includes(term);
@@ -191,6 +203,7 @@
       const full = await OtonStore.getProperty(item.id);
       const cover = full.photos?.[0];
       const coverUrl = cover ? OtonStore.photoToUrl(cover) : '';
+      const badge = dealBadge(item.deal);
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${coverUrl ? `<img class="thumb" src="${coverUrl}" alt="" />` : '—'}</td>
@@ -200,7 +213,7 @@
           <small style="color:#7a8791">${item.neighborhood} · ${item.city}/MG</small>
         </td>
         <td>${item.type}</td>
-        <td><span class="badge ${item.deal === 'aluguel' ? 'rent' : ''}">${item.deal === 'aluguel' ? 'Aluguel' : 'Venda'}</span></td>
+        <td><span class="badge ${badge.className}">${badge.label}</span></td>
         <td>${formatPrice(item)}</td>
         <td>${full.photos?.length || 0}</td>
         <td>

@@ -158,6 +158,7 @@ th {
   text-transform: uppercase;
 }
 .badge.rent { background: #eef6ff; }
+.badge.both { background: #eefaf1; color: #067647; }
 
 .form-grid {
   display: grid;
