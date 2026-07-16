@@ -475,13 +475,43 @@ function setupChrome() {
       menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
       menuBtn.textContent = open ? '✕' : '☰';
     });
-    mobileNav.querySelectorAll('a').forEach((link) => {
-      link.addEventListener('click', () => {
-        mobileNav.classList.remove('open');
-        menuBtn.textContent = '☰';
-        menuBtn.setAttribute('aria-expanded', 'false');
-      });
+    mobileNav.addEventListener('click', (event) => {
+      if (!event.target.closest('a')) return;
+      mobileNav.classList.remove('open');
+      menuBtn.textContent = '☰';
+      menuBtn.setAttribute('aria-expanded', 'false');
     });
+  }
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+async function renderSiteNavigation() {
+  const targets = document.querySelectorAll('[data-site-nav]');
+  if (!targets.length) return;
+
+  try {
+    const items = await OtonStore.getNavigation();
+    targets.forEach((nav) => {
+      const includeLogin = nav.dataset.includeLogin !== 'false';
+      const includeCta = nav.dataset.includeCta === 'true';
+      const links = items
+        .map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`)
+        .join('');
+      const login = includeLogin ? '<a href="login.html">Entrar</a>' : '';
+      const cta = includeCta
+        ? '<a class="header-cta" href="https://wa.me/5534993112645" target="_blank" rel="noopener">Fale conosco <b>↗</b></a>'
+        : '';
+      nav.innerHTML = `${links}${login}${cta}`;
+    });
+  } catch (error) {
+    console.error('Falha ao carregar menu:', error);
   }
 }
 
@@ -529,6 +559,7 @@ async function boot() {
 
   renderFeatured();
   setupListingPage();
+  await renderSiteNavigation();
   renderBiography();
 }
 

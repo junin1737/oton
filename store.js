@@ -29,6 +29,14 @@ const OtonStore = (() => {
     photoBlob: null
   };
 
+  const DEFAULT_NAVIGATION = [
+    { id: 'nav-imoveis', label: 'Imóveis', href: 'imoveis.html' },
+    { id: 'nav-anunciar', label: 'Anuncie seu imóvel', href: 'index.html#anunciar' },
+    { id: 'nav-servicos', label: 'Serviços', href: 'index.html#servicos' },
+    { id: 'nav-sobre', label: 'Sobre', href: 'index.html#sobre' },
+    { id: 'nav-contato', label: 'Contato', href: 'index.html#contato' }
+  ];
+
 
   const SEED = [
     {
@@ -486,6 +494,45 @@ const OtonStore = (() => {
     return getBiography();
   }
 
+  function normalizeNavItems(items) {
+    const list = Array.isArray(items) ? items : [];
+    return list
+      .map((item, index) => ({
+        id: String(item?.id || `nav-${index + 1}`),
+        label: String(item?.label || '').trim(),
+        href: String(item?.href || '').trim()
+      }))
+      .filter((item) => item.label && item.href);
+  }
+
+  async function getNavigation() {
+    const db = await openDb();
+    const tx = db.transaction('meta', 'readonly');
+    const saved = await req(tx.objectStore('meta').get('navigation'));
+    await txDone(tx);
+    const items = normalizeNavItems(saved?.value);
+    return items.length ? items : DEFAULT_NAVIGATION.map((item) => ({ ...item }));
+  }
+
+  async function saveNavigation(items) {
+    const normalized = normalizeNavItems(items);
+    if (!normalized.length) {
+      throw new Error('Adicione pelo menos um botão no menu.');
+    }
+    const db = await openDb();
+    const tx = db.transaction('meta', 'readwrite');
+    tx.objectStore('meta').put({
+      key: 'navigation',
+      value: normalized.map((item, index) => ({
+        id: item.id || `nav-${index + 1}`,
+        label: item.label,
+        href: item.href
+      }))
+    });
+    await txDone(tx);
+    return getNavigation();
+  }
+
   async function ensureSeeded() {
     const db = await openDb();
     const metaTx = db.transaction('meta', 'readonly');
@@ -750,6 +797,9 @@ const OtonStore = (() => {
     ensureUsersSeeded,
     getBiography,
     saveBiography,
+    getNavigation,
+    saveNavigation,
+    DEFAULT_NAVIGATION,
     uid
   };
 })();

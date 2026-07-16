@@ -4,6 +4,34 @@
   const params = new URLSearchParams(location.search);
   const next = params.get('next');
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function renderSiteNavigation() {
+    const targets = document.querySelectorAll('[data-site-nav]');
+    if (!targets.length) return;
+    try {
+      const items = await OtonStore.getNavigation();
+      targets.forEach((nav) => {
+        const includeLogin = nav.dataset.includeLogin !== 'false';
+        const links = items
+          .map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`)
+          .join('');
+        const login = includeLogin ? '<a href="login.html">Entrar</a>' : '';
+        nav.innerHTML = `${links}${login}`;
+      });
+    } catch (error) {
+      console.error('Falha ao carregar menu:', error);
+    }
+  }
+
+  renderSiteNavigation();
+
   const existing = OtonStore.getSession();
   if (existing) {
     if (existing.role !== 'admin') {

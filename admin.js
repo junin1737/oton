@@ -26,6 +26,8 @@
   let bioPhotoBlob = null;
   let bioKeepPhoto = true;
   let bioPreviewUrl = '';
+  /** @type {{id:string,label:string,href:string}[]} */
+  let navDraft = [];
 
   function toast(message, type = 'ok') {
     toastEl.textContent = message;
@@ -290,12 +292,128 @@
     resetForm();
     renderList();
     loadBiographyForm();
+    loadNavigationForm();
   }
 
   const bioForm = document.querySelector('#biography-form');
   const bioPreview = document.querySelector('#bio-photo-preview');
   const bioPhotoInput = document.querySelector('#bio-photo-input');
   const bioPhotoRemove = document.querySelector('#bio-photo-remove');
+  const navItemsEl = document.querySelector('#nav-items');
+  const navAddBtn = document.querySelector('#nav-add-btn');
+  const navSaveBtn = document.querySelector('#nav-save-btn');
+
+  function escapeAttr(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+  }
+
+  function renderNavEditor() {
+    if (!navDraft.length) {
+      navItemsEl.innerHTML = '<p class="empty" style="margin:0;">Nenhum botão no menu. Adicione pelo menos um.</p>';
+      return;
+    }
+
+    navItemsEl.innerHTML = navDraft.map((item, index) => `
+      <div class="nav-editor-row" data-nav-index="${index}">
+        <span class="nav-editor-index">${String(index + 1).padStart(2, '0')}</span>
+        <label>
+          <span>TEXTO DO BOTÃO</span>
+          <input type="text" data-nav-field="label" maxlength="60" value="${escapeAttr(item.label)}" placeholder="Ex.: Contato" />
+        </label>
+        <label>
+          <span>LINK</span>
+          <input type="text" data-nav-field="href" maxlength="180" value="${escapeAttr(item.href)}" placeholder="Ex.: index.html#contato" />
+        </label>
+        <div class="nav-editor-actions">
+          <button class="btn btn-line" type="button" data-nav-move="-1" ${index === 0 ? 'disabled' : ''} title="Subir">↑</button>
+          <button class="btn btn-line" type="button" data-nav-move="1" ${index === navDraft.length - 1 ? 'disabled' : ''} title="Descer">↓</button>
+          <button class="btn btn-danger" type="button" data-nav-remove title="Remover">Remover</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function syncNavDraftFromDom() {
+    navDraft = [...navItemsEl.querySelectorAll('.nav-editor-row')].map((row, index) => ({
+      id: navDraft[index]?.id || `nav-${Date.now()}-${index}`,
+      label: row.querySelector('[data-nav-field="label"]')?.value || '',
+      href: row.querySelector('[data-nav-field="href"]')?.value || ''
+    }));
+  }
+
+  async function loadNavigationForm() {
+    try {
+      navDraft = await OtonStore.getNavigation();
+      renderNavEditor();
+    } catch (error) {
+      console.error(error);
+      toast('Não foi possível carregar o menu.', 'err');
+    }
+  }
+
+  navItemsEl.addEventListener('input', (event) => {
+    const field = event.target.getAttribute('data-nav-field');
+    if (!field) return;
+    const row = event.target.closest('.nav-editor-row');
+    const index = Number(row?.dataset.navIndex);
+    if (!Number.isInteger(index) || !navDraft[index]) return;
+    navDraft[index][field] = event.target.value;
+  });
+
+  navItemsEl.addEventListener('click', (event) => {
+    const row = event.target.closest('.nav-editor-row');
+    if (!row) return;
+    const index = Number(row.dataset.navIndex);
+    if (!Number.isInteger(index)) return;
+
+    if (event.target.closest('[data-nav-remove]')) {
+      syncNavDraftFromDom();
+      navDraft.splice(index, 1);
+      renderNavEditor();
+      return;
+    }
+
+    const moveBtn = event.target.closest('[data-nav-move]');
+    if (moveBtn) {
+      const delta = Number(moveBtn.getAttribute('data-nav-move'));
+      const next = index + delta;
+      if (next < 0 || next >= navDraft.length) return;
+      syncNavDraftFromDom();
+      const [item] = navDraft.splice(index, 1);
+      navDraft.splice(next, 0, item);
+      renderNavEditor();
+    }
+  });
+
+  navAddBtn.addEventListener('click', () => {
+    syncNavDraftFromDom();
+    navDraft.push({
+      id: `nav-${Date.now()}`,
+      label: 'Novo botão',
+      href: 'index.html#'
+    });
+    renderNavEditor();
+  });
+
+  navSaveBtn.addEventListener('click', async () => {
+    syncNavDraftFromDom();
+    navSaveBtn.disabled = true;
+    navSaveBtn.textContent = 'Salvando...';
+    try {
+      navDraft = await OtonStore.saveNavigation(navDraft);
+      renderNavEditor();
+      toast('Menu salvo. Atualize o site para ver os botões.');
+    } catch (error) {
+      console.error(error);
+      toast(error.message || 'Não foi possível salvar o menu.', 'err');
+    } finally {
+      navSaveBtn.disabled = false;
+      navSaveBtn.textContent = 'Salvar menu';
+    }
+  });
 
   function renderBioPreview(url) {
     if (url) {
