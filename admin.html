@@ -28,6 +28,47 @@
     </header>
 
     <main class="admin-main">
+      <section class="panel" id="biography-panel">
+        <h1>Biografia no site</h1>
+        <p class="hint">Esse conteúdo aparece na página inicial, com a foto e o texto do corretor.</p>
+        <form id="biography-form">
+          <div class="form-grid">
+            <label>
+              <span class="req">NOME</span>
+              <input name="name" required maxlength="80" placeholder="Óton Rodrigo" />
+            </label>
+            <label>
+              TÍTULO / CRECI
+              <input name="title" maxlength="120" placeholder="Corretor de Imóveis · CRECI MGF - 50403" />
+            </label>
+            <label class="full">
+              <span class="req">BIOGRAFIA</span>
+              <textarea name="text" required rows="5" placeholder="Conte um pouco sobre o atendimento, experiência e diferenciais..."></textarea>
+            </label>
+          </div>
+
+          <div class="bio-photo-row">
+            <div class="bio-photo-preview" id="bio-photo-preview">
+              <span>Sem foto</span>
+            </div>
+            <div class="bio-photo-actions">
+              <p class="hint" style="margin:0 0 12px;">Adicione uma foto profissional. Recomendado: retrato vertical ou quadrado.</p>
+              <div class="form-actions" style="margin:0;">
+                <label class="btn btn-line" style="cursor:pointer;">
+                  Escolher foto
+                  <input id="bio-photo-input" type="file" accept="image/*" hidden />
+                </label>
+                <button class="btn btn-danger" type="button" id="bio-photo-remove" hidden>Remover foto</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-yellow" type="submit" id="bio-save-btn">Salvar biografia</button>
+          </div>
+        </form>
+      </section>
+
       <section class="panel">
         <h1>Imóveis cadastrados</h1>
         <p class="hint">Gerencie o catálogo que aparece na home e na página de busca.</p>
@@ -181,7 +222,7 @@
             5. Salve e confira em <a href="imoveis.html" target="_blank" rel="noopener">Imóveis</a>.
           </p>
           <p class="hint">
-            Acesso pelo login do site. Proprietários e inquilinos entram pela mesma página e vão para suas áreas.
+            Acesso pelo login do site (apenas administrador por enquanto).
           </p>
         </aside>
       </section>

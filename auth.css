@@ -351,8 +351,13 @@
   border: 1px solid var(--line);
 }
 
+.auth-main-single {
+  grid-template-columns: 1.1fr .9fr;
+}
+
 @media (max-width: 980px) {
   .auth-main,
+  .auth-main-single,
   .portal-grid {
     grid-template-columns: 1fr;
   }

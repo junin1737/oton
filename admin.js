@@ -23,6 +23,9 @@
   let draftPhotos = [];
   let cache = [];
   let objectUrls = [];
+  let bioPhotoBlob = null;
+  let bioKeepPhoto = true;
+  let bioPreviewUrl = '';
 
   function toast(message, type = 'ok') {
     toastEl.textContent = message;
@@ -273,7 +276,89 @@
   function showApp() {
     resetForm();
     renderList();
+    loadBiographyForm();
   }
+
+  const bioForm = document.querySelector('#biography-form');
+  const bioPreview = document.querySelector('#bio-photo-preview');
+  const bioPhotoInput = document.querySelector('#bio-photo-input');
+  const bioPhotoRemove = document.querySelector('#bio-photo-remove');
+
+  function renderBioPreview(url) {
+    if (url) {
+      bioPreview.innerHTML = `<img src="${url}" alt="Foto da biografia" />`;
+      bioPhotoRemove.hidden = false;
+    } else {
+      bioPreview.innerHTML = '<span>Sem foto</span>';
+      bioPhotoRemove.hidden = true;
+    }
+  }
+
+  async function loadBiographyForm() {
+    try {
+      const bio = await OtonStore.getBiography();
+      bioForm.name.value = bio.name || '';
+      bioForm.title.value = bio.title || '';
+      bioForm.text.value = bio.text || '';
+      bioPhotoBlob = null;
+      bioKeepPhoto = Boolean(bio.photoBlob);
+      if (bioPreviewUrl) URL.revokeObjectURL(bioPreviewUrl);
+      bioPreviewUrl = bio.photoUrl || '';
+      renderBioPreview(bioPreviewUrl);
+    } catch (error) {
+      console.error(error);
+      toast('Não foi possível carregar a biografia.', 'err');
+    }
+  }
+
+  bioPhotoInput.addEventListener('change', async () => {
+    const file = bioPhotoInput.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await OtonStore.compressImage(file, { maxWidth: 900, quality: 0.82 });
+      bioPhotoBlob = compressed.blob;
+      bioKeepPhoto = true;
+      if (bioPreviewUrl) URL.revokeObjectURL(bioPreviewUrl);
+      bioPreviewUrl = compressed.previewUrl;
+      renderBioPreview(bioPreviewUrl);
+    } catch (error) {
+      toast(error.message || 'Falha ao processar a foto.', 'err');
+    } finally {
+      bioPhotoInput.value = '';
+    }
+  });
+
+  bioPhotoRemove.addEventListener('click', () => {
+    bioPhotoBlob = null;
+    bioKeepPhoto = false;
+    if (bioPreviewUrl) URL.revokeObjectURL(bioPreviewUrl);
+    bioPreviewUrl = '';
+    renderBioPreview('');
+  });
+
+  bioForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const saveBtn = document.querySelector('#bio-save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Salvando...';
+    try {
+      await OtonStore.saveBiography({
+        name: bioForm.name.value,
+        title: bioForm.title.value,
+        text: bioForm.text.value,
+        photoBlob: bioPhotoBlob,
+        keepPhoto: bioKeepPhoto
+      });
+      toast('Biografia salva. Confira na página inicial.');
+      await loadBiographyForm();
+    } catch (error) {
+      console.error(error);
+      toast('Não foi possível salvar a biografia.', 'err');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Salvar biografia';
+    }
+  });
 
   document.querySelector('#logout-btn').addEventListener('click', () => {
     OtonStore.logout();

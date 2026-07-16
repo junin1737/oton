@@ -9,9 +9,7 @@ const OtonStore = (() => {
   const MIN_PHOTO_SLOTS = 20;
 
   const ROLES = {
-    admin: { id: 'admin', label: 'Administrador', home: 'admin.html' },
-    proprietario: { id: 'proprietario', label: 'Proprietário', home: 'portal-proprietario.html' },
-    inquilino: { id: 'inquilino', label: 'Inquilino', home: 'portal-inquilino.html' }
+    admin: { id: 'admin', label: 'Administrador', home: 'admin.html' }
   };
 
   const DEFAULT_USERS = [
@@ -21,22 +19,15 @@ const OtonStore = (() => {
       email: 'admin@oton.com.br',
       password: 'oton2026',
       role: 'admin'
-    },
-    {
-      id: 'user-prop',
-      name: 'Maria Proprietária',
-      email: 'proprietario@oton.com.br',
-      password: 'prop2026',
-      role: 'proprietario'
-    },
-    {
-      id: 'user-inq',
-      name: 'João Inquilino',
-      email: 'inquilino@oton.com.br',
-      password: 'inq2026',
-      role: 'inquilino'
     }
   ];
+
+  const DEFAULT_BIOGRAPHY = {
+    name: 'Óton Rodrigo',
+    title: 'Corretor de Imóveis · CRECI MGF - 50403',
+    text: 'Atendimento próximo e transparente em Tiros/MG e região. Compra, venda, locação e avaliação de imóveis urbanos e rurais, com cuidado em cada etapa da negociação.',
+    photoBlob: null
+  };
 
 
   const SEED = [
@@ -318,7 +309,7 @@ const OtonStore = (() => {
     const existingUsers = await req(countTx.objectStore('users').getAll());
     await txDone(countTx);
 
-    const needsReseed = !seedVersion || seedVersion.value < 3 || existingUsers.length < DEFAULT_USERS.length;
+    const needsReseed = !seedVersion || seedVersion.value < 4 || existingUsers.length < DEFAULT_USERS.length;
     if (!needsReseed) return;
 
     const prepared = [];
@@ -336,15 +327,20 @@ const OtonStore = (() => {
 
     const write = db.transaction(['meta', 'users'], 'readwrite');
     const users = write.objectStore('users');
-    // Remove usuários demo antigos com e-mail .imoveis
+    // Remove usuários demo antigos (proprietário/inquilino e e-mails antigos)
     existingUsers.forEach((user) => {
-      if (String(user.email || '').endsWith('@oton.imoveis') || String(user.id || '').startsWith('user-')) {
+      if (
+        user.role !== 'admin' ||
+        String(user.email || '').endsWith('@oton.imoveis') ||
+        String(user.email || '').includes('proprietario@') ||
+        String(user.email || '').includes('inquilino@')
+      ) {
         users.delete(user.id);
       }
     });
     prepared.forEach((user) => users.put(user));
     write.objectStore('meta').put({ key: 'usersSeeded', value: true });
-    write.objectStore('meta').put({ key: 'usersSeedVersion', value: 3 });
+    write.objectStore('meta').put({ key: 'usersSeedVersion', value: 4 });
     await txDone(write);
   }
 
@@ -364,20 +360,23 @@ const OtonStore = (() => {
     try {
       const user = await findUserByEmail(normalizedEmail);
       if (user) {
+        if (user.role !== 'admin') {
+          return { ok: false, error: 'Acesso disponível apenas para administradores no momento.' };
+        }
         const passwordHash = await hashPassword(plainPassword);
         if (passwordHash === user.passwordHash) {
           const session = createSession(user);
-          return { ok: true, user: session, home: ROLES[user.role]?.home || 'login.html' };
+          return { ok: true, user: session, home: ROLES.admin.home };
         }
       }
     } catch (error) {
-      console.warn('Login via IndexedDB falhou, tentando contas demo.', error);
+      console.warn('Login via IndexedDB falhou, tentando conta demo.', error);
     }
 
     const demo = findDemoUser(normalizedEmail, plainPassword);
-    if (demo) {
+    if (demo && demo.role === 'admin') {
       const session = createSession(demo);
-      return { ok: true, user: session, home: ROLES[demo.role]?.home || 'login.html' };
+      return { ok: true, user: session, home: ROLES.admin.home };
     }
 
     return { ok: false, error: 'E-mail ou senha inválidos.' };
@@ -449,6 +448,42 @@ const OtonStore = (() => {
 
   function roleHome(role) {
     return ROLES[role]?.home || 'login.html';
+  }
+
+  async function getBiography() {
+    const db = await openDb();
+    const tx = db.transaction('meta', 'readonly');
+    const saved = await req(tx.objectStore('meta').get('biography'));
+    await txDone(tx);
+    const data = saved?.value || DEFAULT_BIOGRAPHY;
+    let photoUrl = '';
+    if (data.photoBlob) {
+      photoUrl = URL.createObjectURL(data.photoBlob);
+    }
+    return {
+      name: data.name || DEFAULT_BIOGRAPHY.name,
+      title: data.title || DEFAULT_BIOGRAPHY.title,
+      text: data.text || DEFAULT_BIOGRAPHY.text,
+      photoBlob: data.photoBlob || null,
+      photoUrl
+    };
+  }
+
+  async function saveBiography({ name, title, text, photoBlob, keepPhoto = true }) {
+    const db = await openDb();
+    const current = await getBiography();
+    const nextPhoto = photoBlob || (keepPhoto ? current.photoBlob : null);
+    const record = {
+      name: String(name || '').trim() || DEFAULT_BIOGRAPHY.name,
+      title: String(title || '').trim() || DEFAULT_BIOGRAPHY.title,
+      text: String(text || '').trim(),
+      photoBlob: nextPhoto || null,
+      updatedAt: Date.now()
+    };
+    const tx = db.transaction('meta', 'readwrite');
+    tx.objectStore('meta').put({ key: 'biography', value: record });
+    await txDone(tx);
+    return getBiography();
   }
 
   async function ensureSeeded() {
@@ -713,6 +748,8 @@ const OtonStore = (() => {
     changePassword,
     roleHome,
     ensureUsersSeeded,
+    getBiography,
+    saveBiography,
     uid
   };
 })();

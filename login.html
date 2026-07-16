@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Entrar | Óton Rodrigo Imóveis</title>
-  <meta name="description" content="Acesse a área do cliente Óton Rodrigo: administrador, proprietário ou inquilino." />
+  <meta name="description" content="Acesse o painel administrativo Óton Rodrigo Imóveis." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet" />
@@ -14,7 +14,7 @@
 <body class="auth-page">
   <div class="utility">
     <div class="utility-left">
-      <span>Área do cliente · Tiros e região</span>
+      <span>Painel administrativo · Tiros e região</span>
     </div>
     <a class="utility-announce" href="index.html">Voltar ao site</a>
   </div>
@@ -32,58 +32,49 @@
     <a class="header-cta" href="https://wa.me/5534993112645" target="_blank" rel="noopener">Fale conosco <b>↗</b></a>
   </header>
 
-  <main class="auth-main">
+  <main class="auth-main auth-main-single">
     <section class="auth-card">
-      <p class="eyebrow">Área do cliente</p>
-      <h1>Bem-vindo de volta</h1>
-      <p class="auth-lead">Entre com seu e-mail e senha para acessar o painel. Em breve, proprietários e inquilinos também acompanham contratos e imóveis por aqui.</p>
-
-      <div class="role-tabs" role="tablist" aria-label="Tipo de acesso">
-        <button type="button" class="role-tab active" data-role="admin">Administrador</button>
-        <button type="button" class="role-tab" data-role="proprietario">Proprietário</button>
-        <button type="button" class="role-tab" data-role="inquilino">Inquilino</button>
-      </div>
+      <p class="eyebrow">Área administrativa</p>
+      <h1>Entrar no painel</h1>
+      <p class="auth-lead">Acesse com seu e-mail e senha para cadastrar imóveis, fotos e a biografia que aparece no site.</p>
 
       <form id="login-form" class="auth-form" novalidate>
-        <input type="hidden" name="roleHint" value="admin" />
         <label>
           <span class="req">E-MAIL</span>
-          <input type="email" name="email" required autocomplete="username" placeholder="seu@email.com" />
+          <input type="email" name="email" required autocomplete="username" placeholder="seu@email.com" value="admin@oton.com.br" />
         </label>
         <label>
           <span class="req">SENHA</span>
-          <input type="password" name="password" required autocomplete="current-password" placeholder="Sua senha" />
+          <input type="password" name="password" required autocomplete="current-password" placeholder="Sua senha" value="oton2026" />
         </label>
-        <button class="auth-submit" type="submit">Entrar na área</button>
+        <button class="auth-submit" type="submit">Entrar</button>
         <p class="auth-error" id="login-error" hidden></p>
       </form>
 
       <div class="auth-demos">
-        <p>Acessos de demonstração:</p>
+        <p>Acesso de demonstração:</p>
         <ul>
           <li><strong>Admin:</strong> admin@oton.com.br · oton2026</li>
-          <li><strong>Proprietário:</strong> proprietario@oton.com.br · prop2026</li>
-          <li><strong>Inquilino:</strong> inquilino@oton.com.br · inq2026</li>
         </ul>
       </div>
     </section>
 
     <aside class="auth-side">
-      <h2>Um acesso para cada perfil</h2>
+      <h2>O que você gerencia</h2>
       <article>
         <span>01</span>
-        <h3>Administrador</h3>
-        <p>Cadastro completo de imóveis, fotos, preços e destaques do site.</p>
+        <h3>Imóveis</h3>
+        <p>Cadastro completo com fotos, preços, condomínio e destaques.</p>
       </article>
       <article>
         <span>02</span>
-        <h3>Proprietário</h3>
-        <p>Acompanhe seus imóveis anunciados, propostas e status da negociação.</p>
+        <h3>Biografia</h3>
+        <p>Texto e foto do corretor exibidos na página inicial do site.</p>
       </article>
       <article>
         <span>03</span>
-        <h3>Inquilino</h3>
-        <p>Consulte contratos, boletos e comunicação com a imobiliária.</p>
+        <h3>Site público</h3>
+        <p>Tudo publicado no painel aparece automaticamente para os visitantes.</p>
       </article>
     </aside>
   </main>

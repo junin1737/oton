@@ -522,6 +522,70 @@ button, input, select { font: inherit; }
 }
 .sell .link-accent { color: #fff; }
 
+/* About / biography */
+.about {
+  display: grid;
+  grid-template-columns: .85fr 1.15fr;
+  background: var(--deep);
+  color: #fff;
+}
+.about-media {
+  min-height: 460px;
+  background:
+    linear-gradient(160deg, rgba(6, 44, 86, .35), rgba(3, 30, 61, .55)),
+    #0a335f center/cover;
+  background-size: cover;
+  background-position: center;
+}
+.about-media.has-photo {
+  background-color: #0a335f;
+}
+.about-content {
+  padding: 90px 10%;
+}
+.about-content .eyebrow {
+  color: var(--yellow);
+}
+.about-content h2 {
+  margin: 0;
+  font: 700 clamp(34px, 4vw, 52px)/1.08 'Playfair Display', serif;
+  letter-spacing: -1px;
+  color: #fff;
+}
+.about-title {
+  margin: 14px 0 22px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--yellow);
+  letter-spacing: .3px;
+}
+.about-text {
+  margin: 0 0 28px;
+  font-size: 15px;
+  line-height: 1.75;
+  color: #c7d7e5;
+  max-width: 460px;
+}
+.about-content .link-accent {
+  color: #fff;
+}
+
+.auth-main-single {
+  align-items: stretch;
+}
+
+@media (max-width: 760px) {
+  .about {
+    grid-template-columns: 1fr;
+  }
+  .about-media {
+    min-height: 280px;
+  }
+  .about-content {
+    padding: 56px 8%;
+  }
+}
+
 /* Contact */
 .contact {
   padding: 98px 10%;
