@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Painel Administrativo | Óton Rodrigo Imóveis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <div id="login-view" class="login-wrap" hidden>
+    <form class="login-card" id="login-form">
+      <img src="assets/logo-oton.png" alt="Óton Rodrigo" />
+      <h1>Painel admin</h1>
+      <p>Cadastre imóveis, preços e galerias com no mínimo 20 fotos por anúncio.</p>
+      <label>
+        SENHA
+        <input type="password" name="password" required autocomplete="current-password" placeholder="Digite a senha" />
+      </label>
+      <button class="btn btn-yellow" type="submit">Entrar</button>
+      <p class="login-note">Senha inicial: <strong>oton2026</strong>. Os dados ficam salvos neste navegador (IndexedDB). Para uso em vários dispositivos, depois podemos migrar para um backend.</p>
+    </form>
+  </div>
+
+  <div id="app-view" class="admin-shell" hidden>
+    <header class="admin-top">
+      <a class="admin-brand" href="index.html" target="_blank" rel="noopener">
+        <img src="assets/logo-oton.png" alt="Óton Rodrigo" />
+        <div>
+          <strong>Painel administrativo</strong>
+          <span>Óton Rodrigo Imóveis</span>
+        </div>
+      </a>
+      <div class="admin-top-actions">
+        <a class="btn btn-ghost" href="imoveis.html" target="_blank" rel="noopener">Ver site</a>
+        <button class="btn btn-ghost" type="button" id="change-pass-btn">Trocar senha</button>
+        <button class="btn btn-yellow" type="button" id="logout-btn">Sair</button>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <section class="panel">
+        <h1>Imóveis cadastrados</h1>
+        <p class="hint">Gerencie o catálogo que aparece na home e na página de busca.</p>
+        <div class="toolbar">
+          <input id="search-list" type="search" placeholder="Buscar por código, título ou bairro" />
+          <select id="filter-deal">
+            <option value="">Todas as finalidades</option>
+            <option value="venda">À venda</option>
+            <option value="aluguel">Para alugar</option>
+          </select>
+          <button class="btn btn-blue" type="button" id="new-property-btn">+ Novo imóvel</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Foto</th>
+                <th>Código</th>
+                <th>Imóvel</th>
+                <th>Tipo</th>
+                <th>Finalidade</th>
+                <th>Preço</th>
+                <th>Fotos</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="properties-tbody"></tbody>
+          </table>
+          <div class="empty" id="empty-list" hidden>Nenhum imóvel encontrado.</div>
+        </div>
+      </section>
+
+      <section class="admin-grid">
+        <form class="panel" id="property-form">
+          <h2 id="form-title">Cadastrar imóvel</h2>
+          <p class="hint" id="form-hint">Preencha os dados e anexe as fotos. A galeria aceita 20 imagens ou mais.</p>
+
+          <input type="hidden" name="id" />
+
+          <div class="form-grid">
+            <label>
+              <span class="req">TÍTULO</span>
+              <input name="title" required maxlength="120" placeholder="Ex.: Casa residencial no Centro" />
+            </label>
+            <label>
+              CÓDIGO
+              <input name="idDisplay" readonly placeholder="Gerado automaticamente" />
+            </label>
+            <label>
+              <span class="req">FINALIDADE</span>
+              <select name="deal" required>
+                <option value="venda">À venda</option>
+                <option value="aluguel">Para alugar</option>
+              </select>
+            </label>
+            <label>
+              <span class="req">TIPO</span>
+              <select name="type" required>
+                <option>Casa</option>
+                <option>Apartamento</option>
+                <option>Terreno</option>
+                <option>Chácara</option>
+                <option>Rural</option>
+                <option>Comercial</option>
+              </select>
+            </label>
+            <label>
+              <span class="req">BAIRRO / REGIÃO</span>
+              <input name="neighborhood" required placeholder="Ex.: Centro" />
+            </label>
+            <label>
+              <span class="req">CIDADE</span>
+              <input name="city" required value="Tiros" />
+            </label>
+            <label>
+              <span class="req">PREÇO (R$)</span>
+              <input name="price" type="number" min="0" step="1" required placeholder="0" />
+            </label>
+            <label>
+              ÁREA (m²)
+              <input name="area" type="number" min="0" step="0.01" placeholder="0" />
+            </label>
+            <label>
+              QUARTOS
+              <input name="bedrooms" type="number" min="0" step="1" value="0" />
+            </label>
+            <label>
+              SUÍTES
+              <input name="suites" type="number" min="0" step="1" value="0" />
+            </label>
+            <label>
+              BANHEIROS
+              <input name="bathrooms" type="number" min="0" step="1" value="0" />
+            </label>
+            <label>
+              VAGAS
+              <input name="parking" type="number" min="0" step="1" value="0" />
+            </label>
+            <label class="full">
+              DESCRIÇÃO
+              <textarea name="description" placeholder="Detalhes do imóvel, diferenciais, documentação..."></textarea>
+            </label>
+          </div>
+
+          <label class="check">
+            <input type="checkbox" name="featured" />
+            Destacar na home (imóveis selecionados)
+          </label>
+
+          <div class="photos-head">
+            <div>
+              <h2 style="font-size:20px;margin:0 0 6px;">Galeria de fotos</h2>
+              <p>
+                Capacidade mínima: <strong>20 imagens</strong> por imóvel.
+                Atuais: <strong id="photo-count">0</strong> / slots livres: <strong id="photo-slots">20</strong>
+              </p>
+            </div>
+            <button class="btn btn-line" type="button" id="pick-photos-btn">Adicionar fotos</button>
+          </div>
+
+          <label class="dropzone" id="dropzone" for="photo-input">
+            <strong>Arraste as fotos aqui ou clique para selecionar</strong>
+            <span>JPG, PNG ou WEBP · várias de uma vez · até dezenas de imagens</span>
+            <input id="photo-input" type="file" accept="image/*" multiple />
+          </label>
+
+          <div class="photo-grid" id="photo-grid"></div>
+
+          <div class="form-actions">
+            <button class="btn btn-yellow" type="submit" id="save-btn">Salvar imóvel</button>
+            <button class="btn btn-line" type="button" id="reset-btn">Limpar formulário</button>
+            <button class="btn btn-danger" type="button" id="delete-btn" hidden>Excluir imóvel</button>
+          </div>
+        </form>
+
+        <aside class="panel">
+          <h2>Como usar</h2>
+          <p class="hint">
+            1. Clique em <strong>Novo imóvel</strong>.<br />
+            2. Preencha os campos obrigatórios.<br />
+            3. Anexe no mínimo as fotos necessárias (a galeria comporta <strong>20+</strong>).<br />
+            4. A primeira foto vira a capa do anúncio.<br />
+            5. Salve e confira em <a href="imoveis.html" target="_blank" rel="noopener">Imóveis</a>.
+          </p>
+          <p class="hint">
+            Dica: use as setas nas miniaturas para reordenar. Remova fotos indesejadas antes de salvar.
+          </p>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="store.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
