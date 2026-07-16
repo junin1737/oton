@@ -22,6 +22,16 @@ function buildSpecs(property) {
   return parts.map((part, index) => (index ? `<i></i>${part}` : part)).join('');
 }
 
+function condoLine(property) {
+  const name = (property.condoName || '').trim();
+  const fee = Number(property.condoFee) || 0;
+  if (!name && !fee) return '';
+  const feeText = fee ? `Cond. R$ ${fee.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '';
+  if (name && feeText) return `<p class="condo-line">${name} · ${feeText}</p>`;
+  if (name) return `<p class="condo-line">${name}</p>`;
+  return `<p class="condo-line">${feeText}</p>`;
+}
+
 function whatsappLink(property) {
   const text = encodeURIComponent(
     `Olá! Tenho interesse no imóvel ${property.id} — ${property.title} (${property.neighborhood}, ${property.city}/MG).`
@@ -49,6 +59,7 @@ function cardHtml(property) {
         <small>${property.type.toUpperCase()}</small>
         <h3>${property.title}</h3>
         <p>${property.neighborhood} · ${property.city}/MG</p>
+        ${condoLine(property)}
         <strong>${formatPrice(property)}</strong>
         <div class="specs">${buildSpecs(property)}</div>
         <a class="card-whatsapp" href="${whatsappLink(property)}" target="_blank" rel="noopener">Chamar no WhatsApp</a>
@@ -137,6 +148,14 @@ function renderGalleryFrame() {
   counter.textContent = `${index + 1} / ${photos.length}`;
   title.textContent = property.title;
   meta.textContent = `${property.id} · ${property.neighborhood} · ${property.city}/MG · ${dealLabel(property.deal)}`;
+  const condoParts = [];
+  if (property.condoName) condoParts.push(property.condoName);
+  if (property.condoFee) {
+    condoParts.push(`Cond. R$ ${Number(property.condoFee).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+  }
+  if (condoParts.length) {
+    meta.textContent += ` · ${condoParts.join(' · ')}`;
+  }
   price.textContent = formatPrice(property);
   whatsapp.href = whatsappLink(property);
 

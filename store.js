@@ -612,6 +612,8 @@ const OtonStore = (() => {
       bathrooms: Number(data.bathrooms) || 0,
       suites: Number(data.suites) || 0,
       parking: Number(data.parking) || 0,
+      condoName: String(data.condoName || '').trim(),
+      condoFee: Number(data.condoFee) || 0,
       description: String(data.description || '').trim(),
       featured: Boolean(data.featured),
       photoIds: keepIds,

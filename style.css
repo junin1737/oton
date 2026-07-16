@@ -427,6 +427,12 @@ button, input, select { font: inherit; }
   color: #78858e;
   margin: 0 0 17px;
 }
+.card .condo-line {
+  margin: -8px 0 14px;
+  font-size: 11px;
+  color: var(--blue);
+  font-weight: 600;
+}
 .card strong {
   display: block;
   font-size: 15px;

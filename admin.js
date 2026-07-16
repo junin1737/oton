@@ -142,6 +142,8 @@
     form.suites.value = property.suites || 0;
     form.bathrooms.value = property.bathrooms || 0;
     form.parking.value = property.parking || 0;
+    form.condoName.value = property.condoName || '';
+    form.condoFee.value = property.condoFee || '';
     form.description.value = property.description || '';
     form.featured.checked = Boolean(property.featured);
 
@@ -234,6 +236,8 @@
         suites: form.suites.value,
         bathrooms: form.bathrooms.value,
         parking: form.parking.value,
+        condoName: form.condoName.value,
+        condoFee: form.condoFee.value,
         description: form.description.value,
         featured: form.featured.checked
       };
