@@ -48,6 +48,12 @@
                 <option value="aluguel">Para alugar</option>
                 <option value="ambos">Venda e aluguel</option>
               </select>
+              <select id="filter-status">
+                <option value="">Todos os status</option>
+                <option value="disponivel">Disponível</option>
+                <option value="alugado">Alugado</option>
+                <option value="vendido">Vendido</option>
+              </select>
               <button class="btn btn-blue" type="button" id="new-property-btn">+ Novo imóvel</button>
             </div>
             <div class="table-wrap">
@@ -59,6 +65,7 @@
                     <th>Imóvel</th>
                     <th>Tipo</th>
                     <th>Finalidade</th>
+                    <th>Status</th>
                     <th>Preço</th>
                     <th>Fotos</th>
                     <th>Ações</th>
@@ -92,6 +99,14 @@
                     <option value="venda">À venda</option>
                     <option value="aluguel">Para alugar</option>
                     <option value="ambos">Venda e aluguel</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="req">STATUS</span>
+                  <select name="status" required>
+                    <option value="disponivel">Disponível</option>
+                    <option value="alugado">Alugado</option>
+                    <option value="vendido">Vendido</option>
                   </select>
                 </label>
                 <label>
@@ -189,7 +204,8 @@
                 2. Preencha os campos obrigatórios.<br />
                 3. Anexe no mínimo as fotos necessárias (a galeria comporta <strong>20+</strong>).<br />
                 4. A primeira foto vira a capa do anúncio.<br />
-                5. Salve e confira em <a href="imoveis.html" target="_blank" rel="noopener">Imóveis</a>.
+                5. Ao alugar ou vender, marque o <strong>Status</strong> como Alugado/Vendido para sair da home e da listagem.<br />
+                6. Salve e confira em <a href="imoveis.html" target="_blank" rel="noopener">Imóveis</a>.
               </p>
               <p class="hint">
                 Use as abas acima para editar biografia, fotos do escritório e o menu do site.

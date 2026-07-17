@@ -52,7 +52,13 @@
   function dealBadge(deal) {
     if (deal === 'aluguel') return { className: 'rent', label: 'Aluguel' };
     if (deal === 'ambos') return { className: 'both', label: 'Venda e aluguel' };
-    return { className: '', label: 'Venda' };
+    return { className: 'sale', label: 'Venda' };
+  }
+
+  function statusBadge(status) {
+    if (status === 'alugado') return { className: 'rented', label: 'Alugado' };
+    if (status === 'vendido') return { className: 'sold', label: 'Vendido' };
+    return { className: 'available', label: 'Disponível' };
   }
 
   function revokeUrls() {
@@ -131,6 +137,7 @@
     form.id.value = '';
     form.idDisplay.value = '';
     form.city.value = 'Tiros';
+    form.status.value = 'disponivel';
     form.featured.checked = false;
     draftPhotos = [];
     revokeUrls();
@@ -150,6 +157,7 @@
     form.idDisplay.value = property.id;
     form.title.value = property.title || '';
     form.deal.value = property.deal || 'venda';
+    form.status.value = property.status || 'disponivel';
     form.type.value = property.type || 'Casa';
     form.neighborhood.value = property.neighborhood || '';
     form.city.value = property.city || 'Tiros';
@@ -187,11 +195,15 @@
   function filteredList() {
     const term = document.querySelector('#search-list').value.trim().toLowerCase();
     const deal = document.querySelector('#filter-deal').value;
+    const status = document.querySelector('#filter-status').value;
     return cache.filter((item) => {
       if (deal === 'venda') return item.deal === 'venda' || item.deal === 'ambos';
       if (deal === 'aluguel') return item.deal === 'aluguel' || item.deal === 'ambos';
       if (deal === 'ambos') return item.deal === 'ambos';
       return true;
+    }).filter((item) => {
+      if (!status) return true;
+      return (item.status || 'disponivel') === status;
     }).filter((item) => {
       if (!term) return true;
       const hay = `${item.id} ${item.title} ${item.neighborhood} ${item.city} ${item.type}`.toLowerCase();
@@ -210,6 +222,7 @@
       const cover = full.photos?.[0];
       const coverUrl = cover ? OtonStore.photoToUrl(cover) : '';
       const badge = dealBadge(item.deal);
+      const status = statusBadge(item.status || 'disponivel');
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${coverUrl ? `<img class="thumb" src="${coverUrl}" alt="" />` : '—'}</td>
@@ -220,6 +233,7 @@
         </td>
         <td>${item.type}</td>
         <td><span class="badge ${badge.className}">${badge.label}</span></td>
+        <td><span class="badge ${status.className}">${status.label}</span></td>
         <td>${formatPrice(item)}</td>
         <td>${full.photos?.length || 0}</td>
         <td>
@@ -249,6 +263,7 @@
         id: form.id.value || null,
         title: form.title.value,
         deal: form.deal.value,
+        status: form.status.value,
         type: form.type.value,
         neighborhood: form.neighborhood.value,
         city: form.city.value,
@@ -725,6 +740,7 @@
   document.querySelector('#reset-btn').addEventListener('click', resetForm);
   document.querySelector('#search-list').addEventListener('input', renderList);
   document.querySelector('#filter-deal').addEventListener('change', renderList);
+  document.querySelector('#filter-status').addEventListener('change', renderList);
 
   form.addEventListener('submit', saveProperty);
 

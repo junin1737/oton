@@ -197,6 +197,10 @@ th {
 }
 .badge.rent { background: #eef6ff; }
 .badge.both { background: #eefaf1; color: #067647; }
+.badge.sale { background: #f3f6fa; }
+.badge.available { background: #eefaf1; color: #067647; }
+.badge.rented { background: #fff4e5; color: #b54708; }
+.badge.sold { background: #fce8e6; color: #b42318; }
 
 .form-grid {
   display: grid;

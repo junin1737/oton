@@ -649,6 +649,7 @@ const OtonStore = (() => {
         parking: item.parking,
         description: item.description || '',
         featured: Boolean(item.featured),
+        status: item.status || 'disponivel',
         photoIds,
         createdAt: now,
         updatedAt: now
@@ -772,6 +773,7 @@ const OtonStore = (() => {
       condoFee: Number(data.condoFee) || 0,
       description: String(data.description || '').trim(),
       featured: Boolean(data.featured),
+      status: ['disponivel', 'alugado', 'vendido'].includes(data.status) ? data.status : 'disponivel',
       photoIds: keepIds,
       createdAt: existing?.createdAt || now,
       updatedAt: now
@@ -805,6 +807,8 @@ const OtonStore = (() => {
     const all = await listProperties();
     const hydrated = [];
     for (const item of all) {
+      const status = item.status || 'disponivel';
+      if (status !== 'disponivel') continue;
       const full = await getProperty(item.id);
       const photos = (full.photos || []).map((photo) => ({
         id: photo.id,
@@ -813,6 +817,7 @@ const OtonStore = (() => {
       }));
       hydrated.push({
         ...full,
+        status: 'disponivel',
         image: photos[0]?.url || '',
         photos
       });
