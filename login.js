@@ -30,7 +30,19 @@
     }
   }
 
+  async function renderSiteLogo() {
+    try {
+      const visual = await OtonStore.getSiteVisual();
+      document.querySelectorAll('[data-site-logo]').forEach((img) => {
+        img.src = visual.logoUrl || OtonStore.DEFAULT_LOGO_PATH;
+      });
+    } catch (error) {
+      console.error('Falha ao carregar logo:', error);
+    }
+  }
+
   renderSiteNavigation();
+  renderSiteLogo();
 
   const existing = OtonStore.getSession();
   if (existing) {

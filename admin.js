@@ -312,6 +312,7 @@
     renderList();
     loadBiographyForm();
     loadOfficeShowcaseForm();
+    loadSiteVisualForm();
     loadNavigationForm();
   }
 
@@ -353,6 +354,206 @@
   const officePhotoGrid = document.querySelector('#office-photo-grid');
   const officePhotoCount = document.querySelector('#office-photo-count');
   const officeSaveBtn = document.querySelector('#office-save-btn');
+  const visualForm = document.querySelector('#site-visual-form');
+  const logoPreview = document.querySelector('#logo-preview');
+  const logoInput = document.querySelector('#logo-input');
+  const logoRemove = document.querySelector('#logo-remove');
+  const bannerDropzone = document.querySelector('#banner-dropzone');
+  const bannerPhotoInput = document.querySelector('#banner-photo-input');
+  const bannerPhotoGrid = document.querySelector('#banner-photo-grid');
+  const bannerPhotoCount = document.querySelector('#banner-photo-count');
+  const visualSaveBtn = document.querySelector('#visual-save-btn');
+  /** @type {{id:string,url:string,name:string,blob?:Blob,source?:string}[]} */
+  let bannerPhotos = [];
+  let logoBlob = null;
+  let logoKeep = true;
+  let logoPreviewUrl = '';
+  let bannerUrls = [];
+
+  function trackBannerUrl(url) {
+    if (url && String(url).startsWith('blob:')) bannerUrls.push(url);
+  }
+
+  function revokeBannerUrls() {
+    bannerUrls.forEach((url) => URL.revokeObjectURL(url));
+    bannerUrls = [];
+  }
+
+  function renderLogoPreview(url) {
+    if (url) {
+      logoPreview.innerHTML = `<img src="${url}" alt="Logo do site" />`;
+      logoRemove.hidden = String(url).includes('assets/logo-oton.png');
+    } else {
+      logoPreview.innerHTML = '<span>Sem logo</span>';
+      logoRemove.hidden = true;
+    }
+  }
+
+  function renderBannerPhotos() {
+    bannerPhotoCount.textContent = `${bannerPhotos.length} banner${bannerPhotos.length === 1 ? '' : 's'}`;
+    if (!bannerPhotos.length) {
+      bannerPhotoGrid.innerHTML = '<div class="empty">Nenhum banner. Sem fotos, o site usa o banner padrão.</div>';
+      return;
+    }
+    bannerPhotoGrid.innerHTML = bannerPhotos.map((photo, index) => `
+      <article class="photo-item" data-index="${index}">
+        <img src="${photo.url}" alt="${photo.name || `Banner ${index + 1}`}" />
+        ${index === 0 ? '<span class="cover-tag">1º</span>' : ''}
+        <div class="ops">
+          <button type="button" data-act="left" title="Mover para esquerda">←</button>
+          <button type="button" data-act="right" title="Mover para direita">→</button>
+          <button type="button" data-act="remove" title="Remover">✕</button>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  async function addBannerFiles(fileList) {
+    const files = [...fileList].filter((file) => file.type.startsWith('image/'));
+    if (!files.length) {
+      toast('Selecione arquivos de imagem válidos.', 'err');
+      return;
+    }
+    visualSaveBtn.disabled = true;
+    visualSaveBtn.textContent = 'Processando banners...';
+    try {
+      for (const file of files) {
+        const compressed = await OtonStore.compressImage(file, { maxWidth: 2000, quality: 0.82 });
+        trackBannerUrl(compressed.previewUrl);
+        bannerPhotos.push({
+          id: OtonStore.uid('banner'),
+          url: compressed.previewUrl,
+          name: compressed.name,
+          blob: compressed.blob,
+          source: 'blob'
+        });
+      }
+      renderBannerPhotos();
+      toast(`${files.length} banner(s) adicionado(s).`);
+    } catch (error) {
+      console.error(error);
+      toast(error.message || 'Falha ao processar imagens.', 'err');
+    } finally {
+      visualSaveBtn.disabled = false;
+      visualSaveBtn.textContent = 'Salvar banner e logo';
+      bannerPhotoInput.value = '';
+    }
+  }
+
+  async function loadSiteVisualForm() {
+    try {
+      const data = await OtonStore.getSiteVisual();
+      visualForm.intervalSeconds.value = data.intervalSeconds || 6;
+      logoBlob = null;
+      logoKeep = Boolean(data.logoBlob);
+      if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(logoPreviewUrl);
+      logoPreviewUrl = data.logoBlob ? data.logoUrl : '';
+      renderLogoPreview(logoPreviewUrl || data.logoUrl || OtonStore.DEFAULT_LOGO_PATH);
+
+      revokeBannerUrls();
+      bannerPhotos = (data.banners || []).map((item) => {
+        trackBannerUrl(item.url);
+        return {
+          id: item.id,
+          url: item.url,
+          name: item.name,
+          blob: item.blob || null,
+          source: item.source || (item.blob ? 'blob' : 'url')
+        };
+      });
+      renderBannerPhotos();
+    } catch (error) {
+      console.error(error);
+      toast('Não foi possível carregar banner/logo.', 'err');
+    }
+  }
+
+  logoInput.addEventListener('change', async () => {
+    const file = logoInput.files?.[0];
+    if (!file) return;
+    try {
+      const compressed = await OtonStore.compressImage(file, { maxWidth: 900, quality: 0.9 });
+      logoBlob = compressed.blob;
+      logoKeep = true;
+      if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(logoPreviewUrl);
+      logoPreviewUrl = compressed.previewUrl;
+      renderLogoPreview(logoPreviewUrl);
+    } catch (error) {
+      toast(error.message || 'Falha ao processar a logo.', 'err');
+    } finally {
+      logoInput.value = '';
+    }
+  });
+
+  logoRemove.addEventListener('click', () => {
+    logoBlob = null;
+    logoKeep = false;
+    if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(logoPreviewUrl);
+    logoPreviewUrl = '';
+    renderLogoPreview(OtonStore.DEFAULT_LOGO_PATH);
+  });
+
+  bannerDropzone.addEventListener('click', (event) => {
+    if (event.target === bannerPhotoInput) return;
+    bannerPhotoInput.click();
+  });
+  bannerPhotoInput.addEventListener('change', () => addBannerFiles(bannerPhotoInput.files || []));
+  ['dragenter', 'dragover'].forEach((type) => {
+    bannerDropzone.addEventListener(type, (event) => {
+      event.preventDefault();
+      bannerDropzone.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach((type) => {
+    bannerDropzone.addEventListener(type, (event) => {
+      event.preventDefault();
+      bannerDropzone.classList.remove('dragover');
+    });
+  });
+  bannerDropzone.addEventListener('drop', (event) => {
+    addBannerFiles(event.dataTransfer.files || []);
+  });
+
+  bannerPhotoGrid.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-act]');
+    const item = event.target.closest('.photo-item');
+    if (!button || !item) return;
+    const index = Number(item.dataset.index);
+    const act = button.dataset.act;
+    if (act === 'remove') bannerPhotos.splice(index, 1);
+    if (act === 'left' && index > 0) {
+      const [photo] = bannerPhotos.splice(index, 1);
+      bannerPhotos.splice(index - 1, 0, photo);
+    }
+    if (act === 'right' && index < bannerPhotos.length - 1) {
+      const [photo] = bannerPhotos.splice(index, 1);
+      bannerPhotos.splice(index + 1, 0, photo);
+    }
+    renderBannerPhotos();
+  });
+
+  visualForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    visualSaveBtn.disabled = true;
+    visualSaveBtn.textContent = 'Salvando...';
+    try {
+      const saved = await OtonStore.saveSiteVisual({
+        logoBlob,
+        keepLogo: logoKeep,
+        intervalSeconds: visualForm.intervalSeconds.value,
+        banners: bannerPhotos
+      });
+      toast('Banner e logo salvos. Confira na página inicial.');
+      await loadSiteVisualForm();
+      void saved;
+    } catch (error) {
+      console.error(error);
+      toast(error.message || 'Não foi possível salvar banner/logo.', 'err');
+    } finally {
+      visualSaveBtn.disabled = false;
+      visualSaveBtn.textContent = 'Salvar banner e logo';
+    }
+  });
 
   function trackOfficeUrl(url) {
     if (url) officeUrls.push(url);
@@ -812,7 +1013,7 @@
   });
 
   const initialTab = (location.hash || '#imoveis').replace('#', '');
-  const allowedTabs = ['imoveis', 'biografia', 'escritorio', 'menu'];
+  const allowedTabs = ['imoveis', 'visual', 'biografia', 'escritorio', 'menu'];
   switchAdminTab(allowedTabs.includes(initialTab) ? initialTab : 'imoveis');
   showApp();
 })();

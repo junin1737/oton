@@ -30,6 +30,7 @@
     <main class="admin-main">
       <nav class="admin-tabs" aria-label="Seções do painel">
         <button class="admin-tab is-active" type="button" data-tab="imoveis" aria-selected="true">Imóveis</button>
+        <button class="admin-tab" type="button" data-tab="visual" aria-selected="false">Banner e logo</button>
         <button class="admin-tab" type="button" data-tab="biografia" aria-selected="false">Biografia</button>
         <button class="admin-tab" type="button" data-tab="escritorio" aria-selected="false">Escritório</button>
         <button class="admin-tab" type="button" data-tab="menu" aria-selected="false">Menu</button>
@@ -211,6 +212,52 @@
                 Use as abas acima para editar biografia, fotos do escritório e o menu do site.
               </p>
             </aside>
+          </section>
+        </div>
+
+        <div class="admin-tab-panel" id="tab-visual" data-tab-panel="visual" hidden>
+          <section class="panel" id="site-visual-panel">
+            <h1>Banner e logo</h1>
+            <p class="hint">A logo aparece no topo do site. Os banners formam o carrossel da página inicial.</p>
+
+            <form id="site-visual-form">
+              <div class="bio-photo-row" style="margin-bottom:22px;">
+                <div class="bio-photo-preview" id="logo-preview">
+                  <span>Sem logo</span>
+                </div>
+                <div class="bio-photo-actions">
+                  <p class="hint" style="margin:0 0 12px;">Logo do site (recomendado: PNG com fundo claro ou transparente).</p>
+                  <div class="form-actions" style="margin:0;">
+                    <label class="btn btn-line" style="cursor:pointer;">
+                      Escolher logo
+                      <input id="logo-input" type="file" accept="image/*" hidden />
+                    </label>
+                    <button class="btn btn-danger" type="button" id="logo-remove" hidden>Usar logo padrão</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <label>
+                  <span class="req">TEMPO ENTRE BANNERS (SEGUNDOS)</span>
+                  <input name="intervalSeconds" type="number" min="2" max="60" step="1" required value="6" />
+                </label>
+              </div>
+
+              <div class="dropzone" id="banner-dropzone">
+                <strong>Arraste as fotos do banner aqui</strong>
+                <span>ou clique para selecionar. Elas passam em carrossel na home.</span>
+                <input id="banner-photo-input" type="file" accept="image/*" multiple />
+              </div>
+              <div class="photo-meta">
+                <span id="banner-photo-count">0 banners</span>
+              </div>
+              <div class="photo-grid" id="banner-photo-grid"></div>
+
+              <div class="form-actions">
+                <button class="btn btn-yellow" type="submit" id="visual-save-btn">Salvar banner e logo</button>
+              </div>
+            </form>
           </section>
         </div>
 

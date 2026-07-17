@@ -45,6 +45,20 @@ const OtonStore = (() => {
     photos: []
   };
 
+  const DEFAULT_LOGO_PATH = 'assets/logo-oton.png';
+  const DEFAULT_SITE_VISUAL = {
+    intervalSeconds: 6,
+    logoBlob: null,
+    banners: [
+      {
+        id: 'banner-default',
+        source: 'url',
+        url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2000&q=85',
+        name: 'Banner padrão'
+      }
+    ]
+  };
+
 
   const SEED = [
     {
@@ -607,6 +621,91 @@ const OtonStore = (() => {
     return getOfficeShowcase();
   }
 
+  function hydrateVisualBanners(banners = []) {
+    return banners.map((item) => {
+      if (item.blob) {
+        return {
+          id: item.id,
+          name: item.name || 'Banner',
+          blob: item.blob,
+          source: 'blob',
+          url: URL.createObjectURL(item.blob)
+        };
+      }
+      return {
+        id: item.id,
+        name: item.name || 'Banner',
+        blob: null,
+        source: 'url',
+        url: item.url || ''
+      };
+    }).filter((item) => item.url);
+  }
+
+  async function getSiteVisual() {
+    const db = await openDb();
+    const tx = db.transaction('meta', 'readonly');
+    const saved = await req(tx.objectStore('meta').get('siteVisual'));
+    await txDone(tx);
+    const data = saved?.value || DEFAULT_SITE_VISUAL;
+    const banners = hydrateVisualBanners(
+      Array.isArray(data.banners) && data.banners.length
+        ? data.banners
+        : DEFAULT_SITE_VISUAL.banners
+    );
+    let logoUrl = DEFAULT_LOGO_PATH;
+    if (data.logoBlob) {
+      logoUrl = URL.createObjectURL(data.logoBlob);
+    }
+    return {
+      logoBlob: data.logoBlob || null,
+      logoUrl,
+      intervalSeconds: Math.min(60, Math.max(2, Number(data.intervalSeconds) || DEFAULT_SITE_VISUAL.intervalSeconds)),
+      banners
+    };
+  }
+
+  async function saveSiteVisual({ logoBlob = null, keepLogo = true, banners = [], intervalSeconds = 6 } = {}) {
+    const current = await getSiteVisual();
+    const nextLogo = logoBlob || (keepLogo ? current.logoBlob : null);
+    const normalizedBanners = (Array.isArray(banners) ? banners : [])
+      .map((item, index) => {
+        if (item.blob) {
+          return {
+            id: String(item.id || uid('banner')),
+            name: String(item.name || `Banner ${index + 1}`),
+            blob: item.blob,
+            source: 'blob',
+            url: null
+          };
+        }
+        if (item.url) {
+          return {
+            id: String(item.id || uid('banner')),
+            name: String(item.name || `Banner ${index + 1}`),
+            blob: null,
+            source: 'url',
+            url: item.url
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    const record = {
+      logoBlob: nextLogo || null,
+      intervalSeconds: Math.min(60, Math.max(2, Number(intervalSeconds) || DEFAULT_SITE_VISUAL.intervalSeconds)),
+      banners: normalizedBanners.length ? normalizedBanners : DEFAULT_SITE_VISUAL.banners.map((item) => ({ ...item })),
+      updatedAt: Date.now()
+    };
+
+    const db = await openDb();
+    const tx = db.transaction('meta', 'readwrite');
+    tx.objectStore('meta').put({ key: 'siteVisual', value: record });
+    await txDone(tx);
+    return getSiteVisual();
+  }
+
   async function ensureSeeded() {
     const db = await openDb();
     const metaTx = db.transaction('meta', 'readonly');
@@ -880,7 +979,10 @@ const OtonStore = (() => {
     saveNavigation,
     getOfficeShowcase,
     saveOfficeShowcase,
+    getSiteVisual,
+    saveSiteVisual,
     DEFAULT_NAVIGATION,
+    DEFAULT_LOGO_PATH,
     uid
   };
 })();

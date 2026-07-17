@@ -61,12 +61,12 @@ function cardHtml(property) {
   const count = photos.length;
 
   return `
-    <article class="card" data-id="${property.id}">
-      <button class="photo" type="button" style="background-image:url('${cover}')" data-open-gallery="${property.id}" aria-label="Ver fotos de ${property.title}">
+    <article class="card" data-id="${property.id}" data-open-gallery="${property.id}" role="button" tabindex="0" aria-label="Ver detalhes de ${property.title}">
+      <div class="photo" style="background-image:url('${cover}')">
         <span>${dealLabel(property.deal)}</span>
         <span class="code">${property.id}</span>
         ${count > 1 ? `<span class="photo-count">${count} fotos</span>` : ''}
-      </button>
+      </div>
       <div class="card-text">
         <small>${property.type.toUpperCase()}</small>
         <h3>${property.title}</h3>
@@ -104,6 +104,7 @@ function ensureGallery() {
           <p class="photo-gallery-counter"></p>
           <h3 class="photo-gallery-title"></h3>
           <p class="photo-gallery-meta"></p>
+          <p class="photo-gallery-description"></p>
           <strong class="photo-gallery-price"></strong>
         </div>
         <a class="photo-gallery-whatsapp" href="#" target="_blank" rel="noopener">
@@ -150,6 +151,7 @@ function renderGalleryFrame() {
   const counter = root.querySelector('.photo-gallery-counter');
   const title = root.querySelector('.photo-gallery-title');
   const meta = root.querySelector('.photo-gallery-meta');
+  const description = root.querySelector('.photo-gallery-description');
   const price = root.querySelector('.photo-gallery-price');
   const whatsapp = root.querySelector('.photo-gallery-whatsapp');
   const prev = root.querySelector('[data-gallery-prev]');
@@ -167,6 +169,11 @@ function renderGalleryFrame() {
   }
   if (condoParts.length) {
     meta.textContent += ` · ${condoParts.join(' · ')}`;
+  }
+  const desc = String(property.description || '').trim();
+  if (description) {
+    description.textContent = desc;
+    description.hidden = !desc;
   }
   price.textContent = formatPrice(property);
   whatsapp.href = whatsappLink(property);
@@ -213,8 +220,16 @@ function stepGallery(delta) {
 
 function setupGalleryTriggers() {
   document.addEventListener('click', (event) => {
+    if (event.target.closest('a.card-whatsapp')) return;
     const trigger = event.target.closest('[data-open-gallery]');
     if (!trigger) return;
+    event.preventDefault();
+    openGallery(trigger.getAttribute('data-open-gallery'), 0);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const trigger = event.target.closest('[data-open-gallery]');
+    if (!trigger || event.target.closest('a')) return;
     event.preventDefault();
     openGallery(trigger.getAttribute('data-open-gallery'), 0);
   });
@@ -645,6 +660,97 @@ async function renderOfficeShowcase() {
   }
 }
 
+async function renderSiteVisual() {
+  try {
+    const visual = await OtonStore.getSiteVisual();
+    document.querySelectorAll('[data-site-logo]').forEach((img) => {
+      img.src = visual.logoUrl || OtonStore.DEFAULT_LOGO_PATH;
+    });
+
+    const hero = document.querySelector('[data-hero]');
+    const slidesEl = document.querySelector('[data-hero-slides]');
+    if (!hero || !slidesEl) return;
+
+    const banners = (visual.banners || []).filter((item) => item.url);
+    if (hero._heroTimer) {
+      clearInterval(hero._heroTimer);
+      hero._heroTimer = null;
+    }
+
+    if (!banners.length) {
+      slidesEl.innerHTML = '';
+      return;
+    }
+
+    slidesEl.innerHTML = banners
+      .map((banner, index) => `
+        <div
+          class="hero-slide${index === 0 ? ' is-active' : ''}"
+          style="background-image:url('${banner.url}')"
+          aria-hidden="${index === 0 ? 'false' : 'true'}">
+        </div>
+      `)
+      .join('');
+
+    let prevBtn = hero.querySelector('[data-hero-prev]');
+    let nextBtn = hero.querySelector('[data-hero-next]');
+    if (!prevBtn) {
+      prevBtn = document.createElement('button');
+      prevBtn.className = 'hero-nav prev';
+      prevBtn.type = 'button';
+      prevBtn.setAttribute('data-hero-prev', '');
+      prevBtn.setAttribute('aria-label', 'Banner anterior');
+      prevBtn.textContent = '‹';
+      hero.appendChild(prevBtn);
+    }
+    if (!nextBtn) {
+      nextBtn = document.createElement('button');
+      nextBtn.className = 'hero-nav next';
+      nextBtn.type = 'button';
+      nextBtn.setAttribute('data-hero-next', '');
+      nextBtn.setAttribute('aria-label', 'Próximo banner');
+      nextBtn.textContent = '›';
+      hero.appendChild(nextBtn);
+    }
+
+    const showNav = banners.length > 1;
+    prevBtn.hidden = !showNav;
+    nextBtn.hidden = !showNav;
+
+    let index = 0;
+    const showSlide = (nextIndex) => {
+      const slides = [...slidesEl.querySelectorAll('.hero-slide')];
+      if (!slides.length) return;
+      index = (nextIndex + slides.length) % slides.length;
+      slides.forEach((slide, i) => {
+        const active = i === index;
+        slide.classList.toggle('is-active', active);
+        slide.setAttribute('aria-hidden', active ? 'false' : 'true');
+      });
+    };
+
+    const restartTimer = () => {
+      if (hero._heroTimer) clearInterval(hero._heroTimer);
+      if (banners.length < 2) return;
+      const ms = Math.max(2, Number(visual.intervalSeconds) || 6) * 1000;
+      hero._heroTimer = setInterval(() => showSlide(index + 1), ms);
+    };
+
+    prevBtn.onclick = () => {
+      showSlide(index - 1);
+      restartTimer();
+    };
+    nextBtn.onclick = () => {
+      showSlide(index + 1);
+      restartTimer();
+    };
+
+    restartTimer();
+  } catch (error) {
+    console.error('Falha ao carregar banner/logo:', error);
+  }
+}
+
 async function boot() {
   setupChrome();
   setupHomeSearch();
@@ -661,6 +767,7 @@ async function boot() {
   renderFeatured();
   setupListingPage();
   await renderSiteNavigation();
+  await renderSiteVisual();
   renderBiography();
   renderOfficeShowcase();
 }
