@@ -238,6 +238,13 @@ textarea { min-height: 96px; resize: vertical; }
 }
 .dropzone input { display: none; }
 
+.photo-meta {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 .photo-grid {
   margin-top: 14px;
   display: grid;
