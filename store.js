@@ -37,6 +37,13 @@ const OtonStore = (() => {
     { id: 'nav-contato', label: 'Contato', href: 'index.html#contato' }
   ];
 
+  const DEFAULT_OFFICE_SHOWCASE = {
+    title: 'Conheça nosso escritório',
+    text: 'Um espaço acolhedor em Tiros/MG para atendimento presencial na compra, venda e locação.',
+    coverId: null,
+    photos: []
+  };
+
 
   const SEED = [
     {
@@ -533,6 +540,66 @@ const OtonStore = (() => {
     return getNavigation();
   }
 
+  function hydrateOfficePhotos(photos = []) {
+    return photos.map((photo) => {
+      const url = photo.blob ? URL.createObjectURL(photo.blob) : (photo.url || '');
+      return {
+        id: photo.id,
+        name: photo.name || 'Foto',
+        blob: photo.blob || null,
+        url
+      };
+    });
+  }
+
+  async function getOfficeShowcase() {
+    const db = await openDb();
+    const tx = db.transaction('meta', 'readonly');
+    const saved = await req(tx.objectStore('meta').get('officeShowcase'));
+    await txDone(tx);
+    const data = saved?.value || DEFAULT_OFFICE_SHOWCASE;
+    const photos = hydrateOfficePhotos(Array.isArray(data.photos) ? data.photos : []);
+    const coverId = data.coverId && photos.some((photo) => photo.id === data.coverId)
+      ? data.coverId
+      : (photos[0]?.id || null);
+    const cover = photos.find((photo) => photo.id === coverId) || null;
+    return {
+      title: String(data.title || '').trim() || DEFAULT_OFFICE_SHOWCASE.title,
+      text: String(data.text || '').trim() || DEFAULT_OFFICE_SHOWCASE.text,
+      coverId,
+      photos,
+      coverUrl: cover?.url || ''
+    };
+  }
+
+  async function saveOfficeShowcase({ title, text, photos = [], coverId = null }) {
+    const normalizedPhotos = (Array.isArray(photos) ? photos : [])
+      .map((photo, index) => ({
+        id: String(photo.id || uid('office')),
+        name: String(photo.name || `Foto ${index + 1}`),
+        blob: photo.blob || null
+      }))
+      .filter((photo) => photo.blob);
+
+    const nextCoverId = coverId && normalizedPhotos.some((photo) => photo.id === coverId)
+      ? coverId
+      : (normalizedPhotos[0]?.id || null);
+
+    const record = {
+      title: String(title || '').trim() || DEFAULT_OFFICE_SHOWCASE.title,
+      text: String(text || '').trim() || DEFAULT_OFFICE_SHOWCASE.text,
+      coverId: nextCoverId,
+      photos: normalizedPhotos,
+      updatedAt: Date.now()
+    };
+
+    const db = await openDb();
+    const tx = db.transaction('meta', 'readwrite');
+    tx.objectStore('meta').put({ key: 'officeShowcase', value: record });
+    await txDone(tx);
+    return getOfficeShowcase();
+  }
+
   async function ensureSeeded() {
     const db = await openDb();
     const metaTx = db.transaction('meta', 'readonly');
@@ -799,6 +866,8 @@ const OtonStore = (() => {
     saveBiography,
     getNavigation,
     saveNavigation,
+    getOfficeShowcase,
+    saveOfficeShowcase,
     DEFAULT_NAVIGATION,
     uid
   };

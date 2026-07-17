@@ -544,6 +544,33 @@ async function renderBiography() {
   }
 }
 
+async function renderOfficeShowcase() {
+  const section = document.querySelector('[data-office-showcase]');
+  if (!section) return;
+
+  try {
+    const data = await OtonStore.getOfficeShowcase();
+    const titleEl = section.querySelector('[data-office-title]');
+    const textEl = section.querySelector('[data-office-text]');
+    const coverEl = section.querySelector('[data-office-cover]');
+
+    if (titleEl) titleEl.textContent = data.title;
+    if (textEl) textEl.textContent = data.text;
+
+    if (coverEl) {
+      if (data.coverUrl) {
+        coverEl.style.backgroundImage = `linear-gradient(160deg, rgba(3, 30, 61, .18), rgba(3, 30, 61, .4)), url('${data.coverUrl}')`;
+        coverEl.classList.add('has-photo');
+      } else {
+        coverEl.style.backgroundImage = '';
+        coverEl.classList.remove('has-photo');
+      }
+    }
+  } catch (error) {
+    console.error('Falha ao carregar fotos do escritório:', error);
+  }
+}
+
 async function boot() {
   setupChrome();
   setupHomeSearch();
@@ -561,6 +588,7 @@ async function boot() {
   setupListingPage();
   await renderSiteNavigation();
   renderBiography();
+  renderOfficeShowcase();
 }
 
 document.addEventListener('DOMContentLoaded', boot);

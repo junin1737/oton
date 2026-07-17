@@ -28,6 +28,10 @@
   let bioPreviewUrl = '';
   /** @type {{id:string,label:string,href:string}[]} */
   let navDraft = [];
+  /** @type {{id:string,url:string,name:string,blob?:Blob}[]} */
+  let officePhotos = [];
+  let officeCoverId = null;
+  let officeUrls = [];
 
   function toast(message, type = 'ok') {
     toastEl.textContent = message;
@@ -292,6 +296,7 @@
     resetForm();
     renderList();
     loadBiographyForm();
+    loadOfficeShowcaseForm();
     loadNavigationForm();
   }
 
@@ -302,6 +307,176 @@
   const navItemsEl = document.querySelector('#nav-items');
   const navAddBtn = document.querySelector('#nav-add-btn');
   const navSaveBtn = document.querySelector('#nav-save-btn');
+  const officeForm = document.querySelector('#office-showcase-form');
+  const officeDropzone = document.querySelector('#office-dropzone');
+  const officePhotoInput = document.querySelector('#office-photo-input');
+  const officePhotoGrid = document.querySelector('#office-photo-grid');
+  const officePhotoCount = document.querySelector('#office-photo-count');
+  const officeSaveBtn = document.querySelector('#office-save-btn');
+
+  function trackOfficeUrl(url) {
+    if (url) officeUrls.push(url);
+  }
+
+  function revokeOfficeUrls() {
+    officeUrls.forEach((url) => URL.revokeObjectURL(url));
+    officeUrls = [];
+  }
+
+  function renderOfficePhotos() {
+    officePhotoCount.textContent = `${officePhotos.length} foto${officePhotos.length === 1 ? '' : 's'}`;
+    if (!officePhotos.length) {
+      officePhotoGrid.innerHTML = '<div class="empty">Nenhuma foto do escritório ainda. Adicione imagens e defina a capa.</div>';
+      return;
+    }
+
+    officePhotoGrid.innerHTML = officePhotos.map((photo, index) => `
+      <article class="photo-item" data-index="${index}" data-id="${photo.id}">
+        <img src="${photo.url}" alt="${photo.name || `Foto ${index + 1}`}" />
+        ${photo.id === officeCoverId ? '<span class="cover-tag">CAPA</span>' : ''}
+        <div class="ops">
+          <button type="button" data-act="cover" title="Definir como capa">Capa</button>
+          <button type="button" data-act="remove" title="Remover">✕</button>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  async function addOfficeFiles(fileList) {
+    const files = [...fileList].filter((file) => file.type.startsWith('image/'));
+    if (!files.length) {
+      toast('Selecione arquivos de imagem válidos.', 'err');
+      return;
+    }
+
+    officeSaveBtn.disabled = true;
+    officeSaveBtn.textContent = 'Processando fotos...';
+    try {
+      for (const file of files) {
+        const compressed = await OtonStore.compressImage(file, { maxWidth: 1400, quality: 0.8 });
+        trackOfficeUrl(compressed.previewUrl);
+        const id = OtonStore.uid('office');
+        officePhotos.push({
+          id,
+          url: compressed.previewUrl,
+          name: compressed.name,
+          blob: compressed.blob
+        });
+        if (!officeCoverId) officeCoverId = id;
+      }
+      renderOfficePhotos();
+      toast(`${files.length} foto(s) do escritório adicionada(s).`);
+    } catch (error) {
+      console.error(error);
+      toast(error.message || 'Falha ao processar imagens.', 'err');
+    } finally {
+      officeSaveBtn.disabled = false;
+      officeSaveBtn.textContent = 'Salvar escritório';
+      officePhotoInput.value = '';
+    }
+  }
+
+  async function loadOfficeShowcaseForm() {
+    try {
+      const data = await OtonStore.getOfficeShowcase();
+      officeForm.title.value = data.title || '';
+      officeForm.text.value = data.text || '';
+      revokeOfficeUrls();
+      officePhotos = (data.photos || []).map((photo) => {
+        trackOfficeUrl(photo.url);
+        return {
+          id: photo.id,
+          url: photo.url,
+          name: photo.name,
+          blob: photo.blob
+        };
+      });
+      officeCoverId = data.coverId || officePhotos[0]?.id || null;
+      renderOfficePhotos();
+    } catch (error) {
+      console.error(error);
+      toast('Não foi possível carregar as fotos do escritório.', 'err');
+    }
+  }
+
+  officeDropzone.addEventListener('click', (event) => {
+    if (event.target === officePhotoInput) return;
+    officePhotoInput.click();
+  });
+  officePhotoInput.addEventListener('change', () => addOfficeFiles(officePhotoInput.files || []));
+
+  ['dragenter', 'dragover'].forEach((type) => {
+    officeDropzone.addEventListener(type, (event) => {
+      event.preventDefault();
+      officeDropzone.classList.add('dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach((type) => {
+    officeDropzone.addEventListener(type, (event) => {
+      event.preventDefault();
+      officeDropzone.classList.remove('dragover');
+    });
+  });
+  officeDropzone.addEventListener('drop', (event) => {
+    addOfficeFiles(event.dataTransfer.files || []);
+  });
+
+  officePhotoGrid.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-act]');
+    const item = event.target.closest('.photo-item');
+    if (!button || !item) return;
+    const index = Number(item.dataset.index);
+    const photo = officePhotos[index];
+    if (!photo) return;
+    const act = button.dataset.act;
+    if (act === 'cover') {
+      officeCoverId = photo.id;
+      renderOfficePhotos();
+      return;
+    }
+    if (act === 'remove') {
+      officePhotos.splice(index, 1);
+      if (officeCoverId === photo.id) {
+        officeCoverId = officePhotos[0]?.id || null;
+      }
+      renderOfficePhotos();
+    }
+  });
+
+  officeForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    officeSaveBtn.disabled = true;
+    officeSaveBtn.textContent = 'Salvando...';
+    try {
+      const saved = await OtonStore.saveOfficeShowcase({
+        title: officeForm.title.value,
+        text: officeForm.text.value,
+        photos: officePhotos,
+        coverId: officeCoverId
+      });
+      revokeOfficeUrls();
+      officePhotos = (saved.photos || []).map((photo) => {
+        trackOfficeUrl(photo.url);
+        return {
+          id: photo.id,
+          url: photo.url,
+          name: photo.name,
+          blob: photo.blob
+        };
+      });
+      officeCoverId = saved.coverId || officePhotos[0]?.id || null;
+      officeForm.title.value = saved.title || '';
+      officeForm.text.value = saved.text || '';
+      renderOfficePhotos();
+      toast('Escritório salvo. Confira a capa na página inicial.');
+    } catch (error) {
+      console.error(error);
+      toast(error.message || 'Não foi possível salvar o escritório.', 'err');
+    } finally {
+      officeSaveBtn.disabled = false;
+      officeSaveBtn.textContent = 'Salvar escritório';
+    }
+  });
 
   function escapeAttr(value) {
     return String(value || '')

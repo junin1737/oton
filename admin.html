@@ -69,6 +69,37 @@
         </form>
       </section>
 
+      <section class="panel" id="office-showcase-panel">
+        <h1>Escritório na home</h1>
+        <p class="hint">Adicione fotos do escritório e defina a capa. A capa aparece na caixa “Conheça nosso escritório” da página inicial.</p>
+        <form id="office-showcase-form">
+          <div class="form-grid">
+            <label class="full">
+              <span class="req">TÍTULO</span>
+              <input name="title" required maxlength="80" placeholder="Conheça nosso escritório" />
+            </label>
+            <label class="full">
+              TEXTO DE APOIO
+              <textarea name="text" rows="3" maxlength="280" placeholder="Um espaço acolhedor em Tiros/MG para atendimento presencial..."></textarea>
+            </label>
+          </div>
+
+          <div class="dropzone" id="office-dropzone">
+            <strong>Arraste fotos do escritório aqui</strong>
+            <span>ou clique para selecionar. A capa marcada é a que aparece na home.</span>
+            <input id="office-photo-input" type="file" accept="image/*" multiple />
+          </div>
+          <div class="photo-meta">
+            <span id="office-photo-count">0 fotos</span>
+          </div>
+          <div class="photo-grid" id="office-photo-grid"></div>
+
+          <div class="form-actions">
+            <button class="btn btn-yellow" type="submit" id="office-save-btn">Salvar escritório</button>
+          </div>
+        </form>
+      </section>
+
       <section class="panel" id="navigation-panel">
         <h1>Menu do site</h1>
         <p class="hint">Edite os botões do menu superior (desktop e mobile). Use links como <code>imoveis.html</code> ou âncoras como <code>index.html#contato</code>.</p>
