@@ -41,6 +41,7 @@ const OtonStore = (() => {
     title: 'Conheça nosso escritório',
     text: 'Um espaço acolhedor em Tiros/MG para atendimento presencial na compra, venda e locação.',
     coverId: null,
+    intervalSeconds: 5,
     photos: []
   };
 
@@ -563,16 +564,21 @@ const OtonStore = (() => {
       ? data.coverId
       : (photos[0]?.id || null);
     const cover = photos.find((photo) => photo.id === coverId) || null;
+    const ordered = coverId
+      ? [cover, ...photos.filter((photo) => photo.id !== coverId)].filter(Boolean)
+      : photos;
+    const intervalSeconds = Math.min(60, Math.max(2, Number(data.intervalSeconds) || DEFAULT_OFFICE_SHOWCASE.intervalSeconds));
     return {
       title: String(data.title || '').trim() || DEFAULT_OFFICE_SHOWCASE.title,
       text: String(data.text || '').trim() || DEFAULT_OFFICE_SHOWCASE.text,
       coverId,
-      photos,
-      coverUrl: cover?.url || ''
+      intervalSeconds,
+      photos: ordered,
+      coverUrl: cover?.url || ordered[0]?.url || ''
     };
   }
 
-  async function saveOfficeShowcase({ title, text, photos = [], coverId = null }) {
+  async function saveOfficeShowcase({ title, text, photos = [], coverId = null, intervalSeconds = 5 }) {
     const normalizedPhotos = (Array.isArray(photos) ? photos : [])
       .map((photo, index) => ({
         id: String(photo.id || uid('office')),
@@ -589,6 +595,7 @@ const OtonStore = (() => {
       title: String(title || '').trim() || DEFAULT_OFFICE_SHOWCASE.title,
       text: String(text || '').trim() || DEFAULT_OFFICE_SHOWCASE.text,
       coverId: nextCoverId,
+      intervalSeconds: Math.min(60, Math.max(2, Number(intervalSeconds) || DEFAULT_OFFICE_SHOWCASE.intervalSeconds)),
       photos: normalizedPhotos,
       updatedAt: Date.now()
     };

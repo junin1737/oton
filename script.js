@@ -552,20 +552,94 @@ async function renderOfficeShowcase() {
     const data = await OtonStore.getOfficeShowcase();
     const titleEl = section.querySelector('[data-office-title]');
     const textEl = section.querySelector('[data-office-text]');
-    const coverEl = section.querySelector('[data-office-cover]');
+    const slidesEl = section.querySelector('[data-office-slides]');
+    const prevBtn = section.querySelector('[data-office-prev]');
+    const nextBtn = section.querySelector('[data-office-next]');
+    const counterEl = section.querySelector('[data-office-counter]');
+    const mediaEl = section.querySelector('[data-office-media]');
 
     if (titleEl) titleEl.textContent = data.title;
     if (textEl) textEl.textContent = data.text;
+    if (!slidesEl) return;
 
-    if (coverEl) {
-      if (data.coverUrl) {
-        coverEl.style.backgroundImage = `linear-gradient(160deg, rgba(3, 30, 61, .18), rgba(3, 30, 61, .4)), url('${data.coverUrl}')`;
-        coverEl.classList.add('has-photo');
-      } else {
-        coverEl.style.backgroundImage = '';
-        coverEl.classList.remove('has-photo');
-      }
+    const photos = (data.photos || []).filter((photo) => photo.url);
+    if (section._officeTimer) {
+      clearInterval(section._officeTimer);
+      section._officeTimer = null;
     }
+
+    if (!photos.length) {
+      slidesEl.innerHTML = '';
+      if (prevBtn) prevBtn.hidden = true;
+      if (nextBtn) nextBtn.hidden = true;
+      if (counterEl) counterEl.hidden = true;
+      return;
+    }
+
+    slidesEl.innerHTML = photos
+      .map((photo, index) => `
+        <div
+          class="office-showcase-slide${index === 0 ? ' is-active' : ''}"
+          style="background-image:url('${photo.url}')"
+          role="img"
+          aria-label="${escapeHtml(photo.name || `Foto ${index + 1} do escritório`)}"
+          aria-hidden="${index === 0 ? 'false' : 'true'}">
+        </div>
+      `)
+      .join('');
+
+    let index = 0;
+    const showNav = photos.length > 1;
+    if (prevBtn) prevBtn.hidden = !showNav;
+    if (nextBtn) nextBtn.hidden = !showNav;
+    if (counterEl) {
+      counterEl.hidden = !showNav;
+      counterEl.textContent = `1 / ${photos.length}`;
+    }
+
+    const showSlide = (nextIndex) => {
+      const slides = [...slidesEl.querySelectorAll('.office-showcase-slide')];
+      if (!slides.length) return;
+      index = (nextIndex + slides.length) % slides.length;
+      slides.forEach((slide, i) => {
+        const active = i === index;
+        slide.classList.toggle('is-active', active);
+        slide.setAttribute('aria-hidden', active ? 'false' : 'true');
+      });
+      if (counterEl) counterEl.textContent = `${index + 1} / ${photos.length}`;
+    };
+
+    const restartTimer = () => {
+      if (section._officeTimer) clearInterval(section._officeTimer);
+      if (photos.length < 2) return;
+      const ms = Math.max(2, Number(data.intervalSeconds) || 5) * 1000;
+      section._officeTimer = setInterval(() => showSlide(index + 1), ms);
+    };
+
+    if (prevBtn) {
+      prevBtn.onclick = () => {
+        showSlide(index - 1);
+        restartTimer();
+      };
+    }
+    if (nextBtn) {
+      nextBtn.onclick = () => {
+        showSlide(index + 1);
+        restartTimer();
+      };
+    }
+
+    if (mediaEl) {
+      mediaEl.onmouseenter = () => {
+        if (section._officeTimer) {
+          clearInterval(section._officeTimer);
+          section._officeTimer = null;
+        }
+      };
+      mediaEl.onmouseleave = () => restartTimer();
+    }
+
+    restartTimer();
   } catch (error) {
     console.error('Falha ao carregar fotos do escritório:', error);
   }

@@ -381,6 +381,7 @@
       const data = await OtonStore.getOfficeShowcase();
       officeForm.title.value = data.title || '';
       officeForm.text.value = data.text || '';
+      officeForm.intervalSeconds.value = data.intervalSeconds || 5;
       revokeOfficeUrls();
       officePhotos = (data.photos || []).map((photo) => {
         trackOfficeUrl(photo.url);
@@ -451,6 +452,7 @@
       const saved = await OtonStore.saveOfficeShowcase({
         title: officeForm.title.value,
         text: officeForm.text.value,
+        intervalSeconds: officeForm.intervalSeconds.value,
         photos: officePhotos,
         coverId: officeCoverId
       });
@@ -467,6 +469,7 @@
       officeCoverId = saved.coverId || officePhotos[0]?.id || null;
       officeForm.title.value = saved.title || '';
       officeForm.text.value = saved.text || '';
+      officeForm.intervalSeconds.value = saved.intervalSeconds || 5;
       renderOfficePhotos();
       toast('Escritório salvo. Confira a capa na página inicial.');
     } catch (error) {

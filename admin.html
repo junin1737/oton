@@ -71,12 +71,16 @@
 
       <section class="panel" id="office-showcase-panel">
         <h1>Escritório na home</h1>
-        <p class="hint">Adicione fotos do escritório e defina a capa. A capa aparece na caixa “Conheça nosso escritório” da página inicial.</p>
+        <p class="hint">Adicione fotos do escritório, defina a capa e o tempo de troca automática. Na home as fotos passam em carrossel com setas.</p>
         <form id="office-showcase-form">
           <div class="form-grid">
-            <label class="full">
+            <label>
               <span class="req">TÍTULO</span>
               <input name="title" required maxlength="80" placeholder="Conheça nosso escritório" />
+            </label>
+            <label>
+              <span class="req">TEMPO ENTRE FOTOS (SEGUNDOS)</span>
+              <input name="intervalSeconds" type="number" min="2" max="60" step="1" required value="5" />
             </label>
             <label class="full">
               TEXTO DE APOIO
@@ -86,7 +90,7 @@
 
           <div class="dropzone" id="office-dropzone">
             <strong>Arraste fotos do escritório aqui</strong>
-            <span>ou clique para selecionar. A capa marcada é a que aparece na home.</span>
+            <span>ou clique para selecionar. A capa marcada é a primeira foto do carrossel.</span>
             <input id="office-photo-input" type="file" accept="image/*" multiple />
           </div>
           <div class="photo-meta">
