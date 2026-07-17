@@ -1,4 +1,4 @@
-const WHATSAPP = '5534993112645';
+const WHATSAPP = '5534998336147';
 
 let PROPERTIES = [];
 
@@ -521,7 +521,7 @@ async function renderSiteNavigation() {
         .join('');
       const login = includeLogin ? '<a href="login.html">Entrar</a>' : '';
       const cta = includeCta
-        ? '<a class="header-cta" href="https://wa.me/5534993112645" target="_blank" rel="noopener">Fale conosco <b>↗</b></a>'
+        ? '<a class="header-cta" href="https://wa.me/5534998336147" target="_blank" rel="noopener">Fale conosco <b>↗</b></a>'
         : '';
       nav.innerHTML = `${links}${login}${cta}`;
     });
