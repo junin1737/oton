@@ -28,251 +28,268 @@
     </header>
 
     <main class="admin-main">
-      <section class="panel" id="biography-panel">
-        <h1>Biografia no site</h1>
-        <p class="hint">Esse conteúdo aparece na página inicial, com a foto e o texto do corretor.</p>
-        <form id="biography-form">
-          <div class="form-grid">
-            <label>
-              <span class="req">NOME</span>
-              <input name="name" required maxlength="80" placeholder="Óton Rodrigo" />
-            </label>
-            <label>
-              TÍTULO / CRECI
-              <input name="title" maxlength="120" placeholder="Corretor de Imóveis · CRECI MGF - 50403" />
-            </label>
-            <label class="full">
-              <span class="req">BIOGRAFIA</span>
-              <textarea name="text" required rows="5" placeholder="Conte um pouco sobre o atendimento, experiência e diferenciais..."></textarea>
-            </label>
-          </div>
+      <nav class="admin-tabs" aria-label="Seções do painel">
+        <button class="admin-tab is-active" type="button" data-tab="imoveis" aria-selected="true">Imóveis</button>
+        <button class="admin-tab" type="button" data-tab="biografia" aria-selected="false">Biografia</button>
+        <button class="admin-tab" type="button" data-tab="escritorio" aria-selected="false">Escritório</button>
+        <button class="admin-tab" type="button" data-tab="menu" aria-selected="false">Menu</button>
+      </nav>
 
-          <div class="bio-photo-row">
-            <div class="bio-photo-preview" id="bio-photo-preview">
-              <span>Sem foto</span>
-            </div>
-            <div class="bio-photo-actions">
-              <p class="hint" style="margin:0 0 12px;">Adicione uma foto profissional. Recomendado: retrato vertical ou quadrado.</p>
-              <div class="form-actions" style="margin:0;">
-                <label class="btn btn-line" style="cursor:pointer;">
-                  Escolher foto
-                  <input id="bio-photo-input" type="file" accept="image/*" hidden />
-                </label>
-                <button class="btn btn-danger" type="button" id="bio-photo-remove" hidden>Remover foto</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button class="btn btn-yellow" type="submit" id="bio-save-btn">Salvar biografia</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="panel" id="office-showcase-panel">
-        <h1>Escritório na home</h1>
-        <p class="hint">Adicione fotos do escritório, defina a capa e o tempo de troca automática. Na home as fotos passam em carrossel com setas.</p>
-        <form id="office-showcase-form">
-          <div class="form-grid">
-            <label>
-              <span class="req">TÍTULO</span>
-              <input name="title" required maxlength="80" placeholder="Conheça nosso escritório" />
-            </label>
-            <label>
-              <span class="req">TEMPO ENTRE FOTOS (SEGUNDOS)</span>
-              <input name="intervalSeconds" type="number" min="2" max="60" step="1" required value="5" />
-            </label>
-            <label class="full">
-              TEXTO DE APOIO
-              <textarea name="text" rows="3" maxlength="280" placeholder="Um espaço acolhedor em Tiros/MG para atendimento presencial..."></textarea>
-            </label>
-          </div>
-
-          <div class="dropzone" id="office-dropzone">
-            <strong>Arraste fotos do escritório aqui</strong>
-            <span>ou clique para selecionar. A capa marcada é a primeira foto do carrossel.</span>
-            <input id="office-photo-input" type="file" accept="image/*" multiple />
-          </div>
-          <div class="photo-meta">
-            <span id="office-photo-count">0 fotos</span>
-          </div>
-          <div class="photo-grid" id="office-photo-grid"></div>
-
-          <div class="form-actions">
-            <button class="btn btn-yellow" type="submit" id="office-save-btn">Salvar escritório</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="panel" id="navigation-panel">
-        <h1>Menu do site</h1>
-        <p class="hint">Edite os botões do menu superior (desktop e mobile). Use links como <code>imoveis.html</code> ou âncoras como <code>index.html#contato</code>.</p>
-        <div id="nav-items" class="nav-editor"></div>
-        <div class="form-actions">
-          <button class="btn btn-line" type="button" id="nav-add-btn">+ Adicionar botão</button>
-          <button class="btn btn-yellow" type="button" id="nav-save-btn">Salvar menu</button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h1>Imóveis cadastrados</h1>
-        <p class="hint">Gerencie o catálogo que aparece na home e na página de busca.</p>
-        <div class="toolbar">
-          <input id="search-list" type="search" placeholder="Buscar por código, título ou bairro" />
-          <select id="filter-deal">
-            <option value="">Todas as finalidades</option>
-            <option value="venda">À venda</option>
-            <option value="aluguel">Para alugar</option>
-            <option value="ambos">Venda e aluguel</option>
-          </select>
-          <button class="btn btn-blue" type="button" id="new-property-btn">+ Novo imóvel</button>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Foto</th>
-                <th>Código</th>
-                <th>Imóvel</th>
-                <th>Tipo</th>
-                <th>Finalidade</th>
-                <th>Preço</th>
-                <th>Fotos</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="properties-tbody"></tbody>
-          </table>
-          <div class="empty" id="empty-list" hidden>Nenhum imóvel encontrado.</div>
-        </div>
-      </section>
-
-      <section class="admin-grid">
-        <form class="panel" id="property-form">
-          <h2 id="form-title">Cadastrar imóvel</h2>
-          <p class="hint" id="form-hint">Preencha os dados e anexe as fotos. A galeria aceita 20 imagens ou mais.</p>
-
-          <input type="hidden" name="id" />
-
-          <div class="form-grid">
-            <label>
-              <span class="req">TÍTULO</span>
-              <input name="title" required maxlength="120" placeholder="Ex.: Casa residencial no Centro" />
-            </label>
-            <label>
-              CÓDIGO
-              <input name="idDisplay" readonly placeholder="Gerado automaticamente" />
-            </label>
-            <label>
-              <span class="req">FINALIDADE</span>
-              <select name="deal" required>
+      <div class="admin-tab-panels">
+        <div class="admin-tab-panel is-active" id="tab-imoveis" data-tab-panel="imoveis">
+          <section class="panel">
+            <h1>Imóveis cadastrados</h1>
+            <p class="hint">Gerencie o catálogo que aparece na home e na página de busca.</p>
+            <div class="toolbar">
+              <input id="search-list" type="search" placeholder="Buscar por código, título ou bairro" />
+              <select id="filter-deal">
+                <option value="">Todas as finalidades</option>
                 <option value="venda">À venda</option>
                 <option value="aluguel">Para alugar</option>
                 <option value="ambos">Venda e aluguel</option>
               </select>
-            </label>
-            <label>
-              <span class="req">TIPO</span>
-              <select name="type" required>
-                <option>Casa</option>
-                <option>Apartamento</option>
-                <option>Terreno</option>
-                <option>Chácara</option>
-                <option>Rural</option>
-                <option>Comercial</option>
-              </select>
-            </label>
-            <label>
-              <span class="req">BAIRRO / REGIÃO</span>
-              <input name="neighborhood" required placeholder="Ex.: Centro" />
-            </label>
-            <label>
-              <span class="req">CIDADE</span>
-              <input name="city" required value="Tiros" />
-            </label>
-            <label>
-              <span class="req">PREÇO (R$)</span>
-              <input name="price" type="number" min="0" step="1" required placeholder="0" />
-            </label>
-            <label>
-              ÁREA (m²)
-              <input name="area" type="number" min="0" step="0.01" placeholder="0" />
-            </label>
-            <label>
-              QUARTOS
-              <input name="bedrooms" type="number" min="0" step="1" value="0" />
-            </label>
-            <label>
-              SUÍTES
-              <input name="suites" type="number" min="0" step="1" value="0" />
-            </label>
-            <label>
-              BANHEIROS
-              <input name="bathrooms" type="number" min="0" step="1" value="0" />
-            </label>
-            <label>
-              VAGAS
-              <input name="parking" type="number" min="0" step="1" value="0" />
-            </label>
-            <label>
-              NOME DO CONDOMÍNIO
-              <input name="condoName" maxlength="120" placeholder="Ex.: Manhattan II" />
-            </label>
-            <label>
-              VALOR DO CONDOMÍNIO (R$)
-              <input name="condoFee" type="number" min="0" step="0.01" placeholder="0,00" />
-            </label>
-            <label class="full">
-              DESCRIÇÃO
-              <textarea name="description" placeholder="Detalhes do imóvel, diferenciais, documentação..."></textarea>
-            </label>
-          </div>
-
-          <label class="check">
-            <input type="checkbox" name="featured" />
-            Destacar na home (imóveis selecionados)
-          </label>
-
-          <div class="photos-head">
-            <div>
-              <h2 style="font-size:20px;margin:0 0 6px;">Galeria de fotos</h2>
-              <p>
-                Capacidade mínima: <strong>20 imagens</strong> por imóvel.
-                Atuais: <strong id="photo-count">0</strong> / slots livres: <strong id="photo-slots">20</strong>
-              </p>
+              <button class="btn btn-blue" type="button" id="new-property-btn">+ Novo imóvel</button>
             </div>
-            <button class="btn btn-line" type="button" id="pick-photos-btn">Adicionar fotos</button>
-          </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Foto</th>
+                    <th>Código</th>
+                    <th>Imóvel</th>
+                    <th>Tipo</th>
+                    <th>Finalidade</th>
+                    <th>Preço</th>
+                    <th>Fotos</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="properties-tbody"></tbody>
+              </table>
+              <div class="empty" id="empty-list" hidden>Nenhum imóvel encontrado.</div>
+            </div>
+          </section>
 
-          <label class="dropzone" id="dropzone" for="photo-input">
-            <strong>Arraste as fotos aqui ou clique para selecionar</strong>
-            <span>JPG, PNG ou WEBP · várias de uma vez · até dezenas de imagens</span>
-            <input id="photo-input" type="file" accept="image/*" multiple />
-          </label>
+          <section class="admin-grid">
+            <form class="panel" id="property-form">
+              <h2 id="form-title">Cadastrar imóvel</h2>
+              <p class="hint" id="form-hint">Preencha os dados e anexe as fotos. A galeria aceita 20 imagens ou mais.</p>
 
-          <div class="photo-grid" id="photo-grid"></div>
+              <input type="hidden" name="id" />
 
-          <div class="form-actions">
-            <button class="btn btn-yellow" type="submit" id="save-btn">Salvar imóvel</button>
-            <button class="btn btn-line" type="button" id="reset-btn">Limpar formulário</button>
-            <button class="btn btn-danger" type="button" id="delete-btn" hidden>Excluir imóvel</button>
-          </div>
-        </form>
+              <div class="form-grid">
+                <label>
+                  <span class="req">TÍTULO</span>
+                  <input name="title" required maxlength="120" placeholder="Ex.: Casa residencial no Centro" />
+                </label>
+                <label>
+                  CÓDIGO
+                  <input name="idDisplay" readonly placeholder="Gerado automaticamente" />
+                </label>
+                <label>
+                  <span class="req">FINALIDADE</span>
+                  <select name="deal" required>
+                    <option value="venda">À venda</option>
+                    <option value="aluguel">Para alugar</option>
+                    <option value="ambos">Venda e aluguel</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="req">TIPO</span>
+                  <select name="type" required>
+                    <option>Casa</option>
+                    <option>Apartamento</option>
+                    <option>Terreno</option>
+                    <option>Chácara</option>
+                    <option>Rural</option>
+                    <option>Comercial</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="req">BAIRRO / REGIÃO</span>
+                  <input name="neighborhood" required placeholder="Ex.: Centro" />
+                </label>
+                <label>
+                  <span class="req">CIDADE</span>
+                  <input name="city" required value="Tiros" />
+                </label>
+                <label>
+                  <span class="req">PREÇO (R$)</span>
+                  <input name="price" type="number" min="0" step="1" required placeholder="0" />
+                </label>
+                <label>
+                  ÁREA (m²)
+                  <input name="area" type="number" min="0" step="0.01" placeholder="0" />
+                </label>
+                <label>
+                  QUARTOS
+                  <input name="bedrooms" type="number" min="0" step="1" value="0" />
+                </label>
+                <label>
+                  SUÍTES
+                  <input name="suites" type="number" min="0" step="1" value="0" />
+                </label>
+                <label>
+                  BANHEIROS
+                  <input name="bathrooms" type="number" min="0" step="1" value="0" />
+                </label>
+                <label>
+                  VAGAS
+                  <input name="parking" type="number" min="0" step="1" value="0" />
+                </label>
+                <label>
+                  NOME DO CONDOMÍNIO
+                  <input name="condoName" maxlength="120" placeholder="Ex.: Manhattan II" />
+                </label>
+                <label>
+                  VALOR DO CONDOMÍNIO (R$)
+                  <input name="condoFee" type="number" min="0" step="0.01" placeholder="0,00" />
+                </label>
+                <label class="full">
+                  DESCRIÇÃO
+                  <textarea name="description" placeholder="Detalhes do imóvel, diferenciais, documentação..."></textarea>
+                </label>
+              </div>
 
-        <aside class="panel">
-          <h2>Como usar</h2>
-          <p class="hint">
-            1. Clique em <strong>Novo imóvel</strong>.<br />
-            2. Preencha os campos obrigatórios.<br />
-            3. Anexe no mínimo as fotos necessárias (a galeria comporta <strong>20+</strong>).<br />
-            4. A primeira foto vira a capa do anúncio.<br />
-            5. Salve e confira em <a href="imoveis.html" target="_blank" rel="noopener">Imóveis</a>.
-          </p>
-          <p class="hint">
-            Acesso pelo login do site (apenas administrador por enquanto).
-          </p>
-        </aside>
-      </section>
+              <label class="check">
+                <input type="checkbox" name="featured" />
+                Destacar na home (imóveis selecionados)
+              </label>
+
+              <div class="photos-head">
+                <div>
+                  <h2 style="font-size:20px;margin:0 0 6px;">Galeria de fotos</h2>
+                  <p>
+                    Capacidade mínima: <strong>20 imagens</strong> por imóvel.
+                    Atuais: <strong id="photo-count">0</strong> / slots livres: <strong id="photo-slots">20</strong>
+                  </p>
+                </div>
+                <button class="btn btn-line" type="button" id="pick-photos-btn">Adicionar fotos</button>
+              </div>
+
+              <label class="dropzone" id="dropzone" for="photo-input">
+                <strong>Arraste as fotos aqui ou clique para selecionar</strong>
+                <span>JPG, PNG ou WEBP · várias de uma vez · até dezenas de imagens</span>
+                <input id="photo-input" type="file" accept="image/*" multiple />
+              </label>
+
+              <div class="photo-grid" id="photo-grid"></div>
+
+              <div class="form-actions">
+                <button class="btn btn-yellow" type="submit" id="save-btn">Salvar imóvel</button>
+                <button class="btn btn-line" type="button" id="reset-btn">Limpar formulário</button>
+                <button class="btn btn-danger" type="button" id="delete-btn" hidden>Excluir imóvel</button>
+              </div>
+            </form>
+
+            <aside class="panel">
+              <h2>Como usar</h2>
+              <p class="hint">
+                1. Clique em <strong>Novo imóvel</strong>.<br />
+                2. Preencha os campos obrigatórios.<br />
+                3. Anexe no mínimo as fotos necessárias (a galeria comporta <strong>20+</strong>).<br />
+                4. A primeira foto vira a capa do anúncio.<br />
+                5. Salve e confira em <a href="imoveis.html" target="_blank" rel="noopener">Imóveis</a>.
+              </p>
+              <p class="hint">
+                Use as abas acima para editar biografia, fotos do escritório e o menu do site.
+              </p>
+            </aside>
+          </section>
+        </div>
+
+        <div class="admin-tab-panel" id="tab-biografia" data-tab-panel="biografia" hidden>
+          <section class="panel" id="biography-panel">
+            <h1>Biografia no site</h1>
+            <p class="hint">Esse conteúdo aparece na página inicial, com a foto e o texto do corretor.</p>
+            <form id="biography-form">
+              <div class="form-grid">
+                <label>
+                  <span class="req">NOME</span>
+                  <input name="name" required maxlength="80" placeholder="Óton Rodrigo" />
+                </label>
+                <label>
+                  TÍTULO / CRECI
+                  <input name="title" maxlength="120" placeholder="Corretor de Imóveis · CRECI MGF - 50403" />
+                </label>
+                <label class="full">
+                  <span class="req">BIOGRAFIA</span>
+                  <textarea name="text" required rows="5" placeholder="Conte um pouco sobre o atendimento, experiência e diferenciais..."></textarea>
+                </label>
+              </div>
+
+              <div class="bio-photo-row">
+                <div class="bio-photo-preview" id="bio-photo-preview">
+                  <span>Sem foto</span>
+                </div>
+                <div class="bio-photo-actions">
+                  <p class="hint" style="margin:0 0 12px;">Adicione uma foto profissional. Recomendado: retrato vertical ou quadrado.</p>
+                  <div class="form-actions" style="margin:0;">
+                    <label class="btn btn-line" style="cursor:pointer;">
+                      Escolher foto
+                      <input id="bio-photo-input" type="file" accept="image/*" hidden />
+                    </label>
+                    <button class="btn btn-danger" type="button" id="bio-photo-remove" hidden>Remover foto</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button class="btn btn-yellow" type="submit" id="bio-save-btn">Salvar biografia</button>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <div class="admin-tab-panel" id="tab-escritorio" data-tab-panel="escritorio" hidden>
+          <section class="panel" id="office-showcase-panel">
+            <h1>Escritório na home</h1>
+            <p class="hint">Adicione fotos do escritório, defina a capa e o tempo de troca automática. Na home as fotos passam em carrossel com setas.</p>
+            <form id="office-showcase-form">
+              <div class="form-grid">
+                <label>
+                  <span class="req">TÍTULO</span>
+                  <input name="title" required maxlength="80" placeholder="Conheça nosso escritório" />
+                </label>
+                <label>
+                  <span class="req">TEMPO ENTRE FOTOS (SEGUNDOS)</span>
+                  <input name="intervalSeconds" type="number" min="2" max="60" step="1" required value="5" />
+                </label>
+                <label class="full">
+                  TEXTO DE APOIO
+                  <textarea name="text" rows="3" maxlength="280" placeholder="Um espaço acolhedor em Tiros/MG para atendimento presencial..."></textarea>
+                </label>
+              </div>
+
+              <div class="dropzone" id="office-dropzone">
+                <strong>Arraste fotos do escritório aqui</strong>
+                <span>ou clique para selecionar. A capa marcada é a primeira foto do carrossel.</span>
+                <input id="office-photo-input" type="file" accept="image/*" multiple />
+              </div>
+              <div class="photo-meta">
+                <span id="office-photo-count">0 fotos</span>
+              </div>
+              <div class="photo-grid" id="office-photo-grid"></div>
+
+              <div class="form-actions">
+                <button class="btn btn-yellow" type="submit" id="office-save-btn">Salvar escritório</button>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <div class="admin-tab-panel" id="tab-menu" data-tab-panel="menu" hidden>
+          <section class="panel" id="navigation-panel">
+            <h1>Menu do site</h1>
+            <p class="hint">Edite os botões do menu superior (desktop e mobile). Use links como <code>imoveis.html</code> ou âncoras como <code>index.html#contato</code>.</p>
+            <div id="nav-items" class="nav-editor"></div>
+            <div class="form-actions">
+              <button class="btn btn-line" type="button" id="nav-add-btn">+ Adicionar botão</button>
+              <button class="btn btn-yellow" type="button" id="nav-save-btn">Salvar menu</button>
+            </div>
+          </section>
+        </div>
+      </div>
     </main>
   </div>
 

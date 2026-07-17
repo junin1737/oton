@@ -300,6 +300,31 @@
     loadNavigationForm();
   }
 
+  function switchAdminTab(tabId) {
+    const next = String(tabId || 'imoveis');
+    document.querySelectorAll('.admin-tab').forEach((tab) => {
+      const active = tab.dataset.tab === next;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-tab-panel]').forEach((panel) => {
+      const active = panel.dataset.tabPanel === next;
+      panel.classList.toggle('is-active', active);
+      panel.hidden = !active;
+    });
+    if (next === 'imoveis') {
+      history.replaceState(null, '', '#imoveis');
+    } else {
+      history.replaceState(null, '', `#${next}`);
+    }
+  }
+
+  document.querySelector('.admin-tabs')?.addEventListener('click', (event) => {
+    const tab = event.target.closest('.admin-tab');
+    if (!tab) return;
+    switchAdminTab(tab.dataset.tab);
+  });
+
   const bioForm = document.querySelector('#biography-form');
   const bioPreview = document.querySelector('#bio-photo-preview');
   const bioPhotoInput = document.querySelector('#bio-photo-input');
@@ -692,6 +717,7 @@
   });
 
   document.querySelector('#new-property-btn').addEventListener('click', () => {
+    switchAdminTab('imoveis');
     resetForm();
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
@@ -716,7 +742,9 @@
     const editId = event.target.getAttribute('data-edit');
     const delId = event.target.getAttribute('data-del');
     if (editId) {
+      switchAdminTab('imoveis');
       await loadProperty(editId);
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     if (delId) {
@@ -767,5 +795,8 @@
     renderPhotos();
   });
 
+  const initialTab = (location.hash || '#imoveis').replace('#', '');
+  const allowedTabs = ['imoveis', 'biografia', 'escritorio', 'menu'];
+  switchAdminTab(allowedTabs.includes(initialTab) ? initialTab : 'imoveis');
   showApp();
 })();
