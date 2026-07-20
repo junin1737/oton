@@ -1,0 +1,55 @@
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'admin',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS properties (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  type TEXT NOT NULL,
+  deal TEXT NOT NULL,
+  neighborhood TEXT NOT NULL,
+  city TEXT NOT NULL DEFAULT 'Tiros',
+  price REAL NOT NULL DEFAULT 0,
+  area REAL NOT NULL DEFAULT 0,
+  bedrooms INTEGER NOT NULL DEFAULT 0,
+  bathrooms INTEGER NOT NULL DEFAULT 0,
+  suites INTEGER NOT NULL DEFAULT 0,
+  parking INTEGER NOT NULL DEFAULT 0,
+  condo_name TEXT NOT NULL DEFAULT '',
+  condo_fee REAL NOT NULL DEFAULT 0,
+  description TEXT NOT NULL DEFAULT '',
+  featured INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'disponivel',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS photos (
+  id TEXT PRIMARY KEY,
+  property_id TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  source TEXT NOT NULL,
+  url TEXT,
+  name TEXT NOT NULL DEFAULT '',
+  FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_photos_property ON photos(property_id);
+
+CREATE TABLE IF NOT EXISTS meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

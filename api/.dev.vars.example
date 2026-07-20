@@ -1,0 +1,4 @@
+# Exemplo — copie para .dev.vars (não versionar)
+TURSO_DATABASE_URL=libsql://oton-junin1737.aws-us-east-1.turso.io
+TURSO_AUTH_TOKEN=seu-token-aqui
+SESSION_SECRET=troque-por-um-segredo-longo

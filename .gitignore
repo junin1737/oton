@@ -5,3 +5,11 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+node_modules/
+api/node_modules/
+api/.dev.vars
+api/.wrangler/
+.env
+.env.*
+!.env.example
+
