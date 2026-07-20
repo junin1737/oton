@@ -38,25 +38,18 @@
       <h1>Entrar no painel</h1>
       <p class="auth-lead">Acesse com seu e-mail e senha para cadastrar imóveis, fotos e a biografia que aparece no site.</p>
 
-      <form id="login-form" class="auth-form" novalidate>
+      <form id="login-form" class="auth-form" novalidate autocomplete="off">
         <label>
           <span class="req">E-MAIL</span>
-          <input type="email" name="email" required autocomplete="username" placeholder="seu@email.com" value="admin@oton.com.br" />
+          <input type="email" name="email" required autocomplete="off" placeholder="seu@email.com" value="" />
         </label>
         <label>
           <span class="req">SENHA</span>
-          <input type="password" name="password" required autocomplete="current-password" placeholder="Sua senha" value="oton2026" />
+          <input type="password" name="password" required autocomplete="new-password" placeholder="Sua senha" value="" />
         </label>
         <button class="auth-submit" type="submit">Entrar</button>
         <p class="auth-error" id="login-error" hidden></p>
       </form>
-
-      <div class="auth-demos">
-        <p>Acesso de demonstração:</p>
-        <ul>
-          <li><strong>Admin:</strong> admin@oton.com.br · oton2026</li>
-        </ul>
-      </div>
     </section>
 
     <aside class="auth-side">

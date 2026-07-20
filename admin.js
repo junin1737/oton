@@ -314,6 +314,7 @@
     loadOfficeShowcaseForm();
     loadSiteVisualForm();
     loadNavigationForm();
+    loadFooterForm();
   }
 
   function switchAdminTab(tabId) {
@@ -834,6 +835,154 @@
     }
   });
 
+  const footerForm = document.querySelector('#footer-form');
+  const footerPropLinksEl = document.querySelector('#footer-properties-links');
+  const footerRegionLinksEl = document.querySelector('#footer-region-links');
+  const footerPropAdd = document.querySelector('#footer-prop-add');
+  const footerRegionAdd = document.querySelector('#footer-region-add');
+  const footerSaveBtn = document.querySelector('#footer-save-btn');
+  /** @type {{id:string,label:string,href:string}[]} */
+  let footerPropDraft = [];
+  /** @type {{id:string,label:string,href:string}[]} */
+  let footerRegionDraft = [];
+
+  function renderFooterLinkEditor(container, draft, prefix) {
+    if (!draft.length) {
+      container.innerHTML = '<p class="empty" style="margin:0;">Nenhum link. Adicione pelo menos um.</p>';
+      return;
+    }
+    container.innerHTML = draft.map((item, index) => `
+      <div class="nav-editor-row" data-footer-prefix="${prefix}" data-footer-index="${index}">
+        <span class="nav-editor-index">${String(index + 1).padStart(2, '0')}</span>
+        <label>
+          <span>TEXTO</span>
+          <input type="text" data-footer-field="label" maxlength="60" value="${escapeAttr(item.label)}" />
+        </label>
+        <label>
+          <span>LINK</span>
+          <input type="text" data-footer-field="href" maxlength="180" value="${escapeAttr(item.href)}" />
+        </label>
+        <div class="nav-editor-actions">
+          <button class="btn btn-danger" type="button" data-footer-remove title="Remover">Remover</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function syncFooterLinksFromDom(container, draft) {
+    return [...container.querySelectorAll('.nav-editor-row')].map((row, index) => ({
+      id: draft[index]?.id || `flink-${Date.now()}-${index}`,
+      label: row.querySelector('[data-footer-field="label"]')?.value || '',
+      href: row.querySelector('[data-footer-field="href"]')?.value || ''
+    }));
+  }
+
+  async function loadFooterForm() {
+    try {
+      const data = await OtonStore.getFooter();
+      footerForm.brandName.value = data.brandName || '';
+      footerForm.creci.value = data.creci || '';
+      footerForm.brandText.value = data.brandText || '';
+      footerForm.propertiesTitle.value = data.propertiesTitle || '';
+      footerForm.regionTitle.value = data.regionTitle || '';
+      footerForm.contactTitle.value = data.contactTitle || '';
+      footerForm.phoneLabel.value = data.phoneLabel || '';
+      footerForm.phoneHref.value = data.phoneHref || '';
+      footerForm.whatsappLabel.value = data.whatsappLabel || '';
+      footerForm.whatsappHref.value = data.whatsappHref || '';
+      footerForm.loginLabel.value = data.loginLabel || '';
+      footerForm.loginHref.value = data.loginHref || '';
+      footerForm.instagramLabel.value = data.instagramLabel || '';
+      footerForm.instagramHref.value = data.instagramHref || '';
+      footerForm.copyright.value = data.copyright || '';
+      footerForm.backToTopLabel.value = data.backToTopLabel || '';
+      footerPropDraft = data.propertiesLinks || [];
+      footerRegionDraft = data.regionLinks || [];
+      renderFooterLinkEditor(footerPropLinksEl, footerPropDraft, 'prop');
+      renderFooterLinkEditor(footerRegionLinksEl, footerRegionDraft, 'region');
+    } catch (error) {
+      console.error(error);
+      toast('Não foi possível carregar o rodapé.', 'err');
+    }
+  }
+
+  function bindFooterLinkEditor(container, getDraft, setDraft) {
+    container.addEventListener('input', (event) => {
+      const field = event.target.getAttribute('data-footer-field');
+      if (!field) return;
+      const row = event.target.closest('.nav-editor-row');
+      const index = Number(row?.dataset.footerIndex);
+      const draft = getDraft();
+      if (!Number.isInteger(index) || !draft[index]) return;
+      draft[index][field] = event.target.value;
+    });
+    container.addEventListener('click', (event) => {
+      if (!event.target.closest('[data-footer-remove]')) return;
+      const row = event.target.closest('.nav-editor-row');
+      const index = Number(row?.dataset.footerIndex);
+      let draft = syncFooterLinksFromDom(container, getDraft());
+      draft.splice(index, 1);
+      setDraft(draft);
+      renderFooterLinkEditor(container, draft, row?.dataset.footerPrefix || 'prop');
+    });
+  }
+
+  bindFooterLinkEditor(footerPropLinksEl, () => footerPropDraft, (next) => { footerPropDraft = next; });
+  bindFooterLinkEditor(footerRegionLinksEl, () => footerRegionDraft, (next) => { footerRegionDraft = next; });
+
+  footerPropAdd.addEventListener('click', () => {
+    footerPropDraft = syncFooterLinksFromDom(footerPropLinksEl, footerPropDraft);
+    footerPropDraft.push({ id: `fp-${Date.now()}`, label: 'Novo link', href: 'imoveis.html' });
+    renderFooterLinkEditor(footerPropLinksEl, footerPropDraft, 'prop');
+  });
+
+  footerRegionAdd.addEventListener('click', () => {
+    footerRegionDraft = syncFooterLinksFromDom(footerRegionLinksEl, footerRegionDraft);
+    footerRegionDraft.push({ id: `fr-${Date.now()}`, label: 'Nova região', href: 'imoveis.html' });
+    renderFooterLinkEditor(footerRegionLinksEl, footerRegionDraft, 'region');
+  });
+
+  footerForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    footerPropDraft = syncFooterLinksFromDom(footerPropLinksEl, footerPropDraft);
+    footerRegionDraft = syncFooterLinksFromDom(footerRegionLinksEl, footerRegionDraft);
+    footerSaveBtn.disabled = true;
+    footerSaveBtn.textContent = 'Salvando...';
+    try {
+      const saved = await OtonStore.saveFooter({
+        brandName: footerForm.brandName.value,
+        creci: footerForm.creci.value,
+        brandText: footerForm.brandText.value,
+        propertiesTitle: footerForm.propertiesTitle.value,
+        propertiesLinks: footerPropDraft,
+        regionTitle: footerForm.regionTitle.value,
+        regionLinks: footerRegionDraft,
+        contactTitle: footerForm.contactTitle.value,
+        phoneLabel: footerForm.phoneLabel.value,
+        phoneHref: footerForm.phoneHref.value,
+        whatsappLabel: footerForm.whatsappLabel.value,
+        whatsappHref: footerForm.whatsappHref.value,
+        loginLabel: footerForm.loginLabel.value,
+        loginHref: footerForm.loginHref.value,
+        instagramLabel: footerForm.instagramLabel.value,
+        instagramHref: footerForm.instagramHref.value,
+        copyright: footerForm.copyright.value,
+        backToTopLabel: footerForm.backToTopLabel.value
+      });
+      footerPropDraft = saved.propertiesLinks || [];
+      footerRegionDraft = saved.regionLinks || [];
+      renderFooterLinkEditor(footerPropLinksEl, footerPropDraft, 'prop');
+      renderFooterLinkEditor(footerRegionLinksEl, footerRegionDraft, 'region');
+      toast('Rodapé salvo. Atualize o site para conferir.');
+    } catch (error) {
+      console.error(error);
+      toast(error.message || 'Não foi possível salvar o rodapé.', 'err');
+    } finally {
+      footerSaveBtn.disabled = false;
+      footerSaveBtn.textContent = 'Salvar rodapé';
+    }
+  });
+
   function renderBioPreview(url) {
     if (url) {
       bioPreview.innerHTML = `<img src="${url}" alt="Foto da biografia" />`;
@@ -1013,7 +1162,7 @@
   });
 
   const initialTab = (location.hash || '#imoveis').replace('#', '');
-  const allowedTabs = ['imoveis', 'visual', 'biografia', 'escritorio', 'menu'];
+  const allowedTabs = ['imoveis', 'visual', 'biografia', 'escritorio', 'menu', 'rodape'];
   switchAdminTab(allowedTabs.includes(initialTab) ? initialTab : 'imoveis');
   showApp();
 })();

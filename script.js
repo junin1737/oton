@@ -751,6 +751,57 @@ async function renderSiteVisual() {
   }
 }
 
+async function renderSiteFooter() {
+  const footers = document.querySelectorAll('[data-site-footer]');
+  if (!footers.length) return;
+
+  try {
+    const data = await OtonStore.getFooter();
+    footers.forEach((footer) => {
+      const setText = (selector, value) => {
+        const el = footer.querySelector(selector);
+        if (el) el.textContent = value;
+      };
+      setText('[data-footer-brand-name]', data.brandName);
+      setText('[data-footer-creci]', data.creci);
+      setText('[data-footer-brand-text]', data.brandText);
+      setText('[data-footer-properties-title]', data.propertiesTitle);
+      setText('[data-footer-region-title]', data.regionTitle);
+      setText('[data-footer-contact-title]', data.contactTitle);
+      setText('[data-footer-copyright]', data.copyright);
+
+      const propLinks = footer.querySelector('[data-footer-properties-links]');
+      if (propLinks) {
+        propLinks.innerHTML = (data.propertiesLinks || [])
+          .map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`)
+          .join('');
+      }
+      const regionLinks = footer.querySelector('[data-footer-region-links]');
+      if (regionLinks) {
+        regionLinks.innerHTML = (data.regionLinks || [])
+          .map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`)
+          .join('');
+      }
+      const contactLinks = footer.querySelector('[data-footer-contact-links]');
+      if (contactLinks) {
+        contactLinks.innerHTML = `
+          <a href="${escapeHtml(data.phoneHref)}">${escapeHtml(data.phoneLabel)}</a>
+          <a href="${escapeHtml(data.whatsappHref)}" target="_blank" rel="noopener">${escapeHtml(data.whatsappLabel)}</a>
+          <a href="${escapeHtml(data.loginHref)}">${escapeHtml(data.loginLabel)}</a>
+          <a href="${escapeHtml(data.instagramHref)}" target="_blank" rel="noopener">${escapeHtml(data.instagramLabel)}</a>
+        `;
+      }
+      const top = footer.querySelector('[data-footer-top]');
+      if (top) {
+        top.textContent = data.backToTopLabel;
+        top.href = '#inicio';
+      }
+    });
+  } catch (error) {
+    console.error('Falha ao carregar rodapé:', error);
+  }
+}
+
 async function boot() {
   setupChrome();
   setupHomeSearch();
@@ -768,6 +819,7 @@ async function boot() {
   setupListingPage();
   await renderSiteNavigation();
   await renderSiteVisual();
+  await renderSiteFooter();
   renderBiography();
   renderOfficeShowcase();
 }

@@ -34,6 +34,7 @@
         <button class="admin-tab" type="button" data-tab="biografia" aria-selected="false">Biografia</button>
         <button class="admin-tab" type="button" data-tab="escritorio" aria-selected="false">Escritório</button>
         <button class="admin-tab" type="button" data-tab="menu" aria-selected="false">Menu</button>
+        <button class="admin-tab" type="button" data-tab="rodape" aria-selected="false">Rodapé</button>
       </nav>
 
       <div class="admin-tab-panels">
@@ -350,6 +351,98 @@
               <button class="btn btn-line" type="button" id="nav-add-btn">+ Adicionar botão</button>
               <button class="btn btn-yellow" type="button" id="nav-save-btn">Salvar menu</button>
             </div>
+          </section>
+        </div>
+
+        <div class="admin-tab-panel" id="tab-rodape" data-tab-panel="rodape" hidden>
+          <section class="panel" id="footer-panel">
+            <h1>Rodapé do site</h1>
+            <p class="hint">Configure textos, links e contatos que aparecem no rodapé de todas as páginas.</p>
+            <form id="footer-form">
+              <h2 style="font-size:18px;margin:8px 0 12px;">Marca</h2>
+              <div class="form-grid">
+                <label>
+                  <span class="req">NOME</span>
+                  <input name="brandName" required maxlength="80" />
+                </label>
+                <label>
+                  <span class="req">CRECI</span>
+                  <input name="creci" required maxlength="80" />
+                </label>
+                <label class="full">
+                  <span class="req">TEXTO DA MARCA</span>
+                  <textarea name="brandText" required rows="3"></textarea>
+                </label>
+              </div>
+
+              <h2 style="font-size:18px;margin:22px 0 12px;">Coluna Imóveis</h2>
+              <label>
+                TÍTULO DA COLUNA
+                <input name="propertiesTitle" maxlength="40" />
+              </label>
+              <div id="footer-properties-links" class="nav-editor" style="margin-top:12px;"></div>
+              <button class="btn btn-line" type="button" id="footer-prop-add">+ Link em Imóveis</button>
+
+              <h2 style="font-size:18px;margin:22px 0 12px;">Coluna Região</h2>
+              <label>
+                TÍTULO DA COLUNA
+                <input name="regionTitle" maxlength="40" />
+              </label>
+              <div id="footer-region-links" class="nav-editor" style="margin-top:12px;"></div>
+              <button class="btn btn-line" type="button" id="footer-region-add">+ Link em Região</button>
+
+              <h2 style="font-size:18px;margin:22px 0 12px;">Contato</h2>
+              <div class="form-grid">
+                <label>
+                  TÍTULO
+                  <input name="contactTitle" maxlength="40" />
+                </label>
+                <label>
+                  TEXTO DO TELEFONE
+                  <input name="phoneLabel" maxlength="40" />
+                </label>
+                <label>
+                  LINK DO TELEFONE
+                  <input name="phoneHref" maxlength="80" placeholder="tel:+5534998336147" />
+                </label>
+                <label>
+                  TEXTO DO WHATSAPP
+                  <input name="whatsappLabel" maxlength="40" />
+                </label>
+                <label>
+                  LINK DO WHATSAPP
+                  <input name="whatsappHref" maxlength="120" placeholder="https://wa.me/5534998336147" />
+                </label>
+                <label>
+                  TEXTO LOGIN
+                  <input name="loginLabel" maxlength="40" />
+                </label>
+                <label>
+                  LINK LOGIN
+                  <input name="loginHref" maxlength="80" placeholder="login.html" />
+                </label>
+                <label>
+                  TEXTO INSTAGRAM
+                  <input name="instagramLabel" maxlength="40" />
+                </label>
+                <label>
+                  LINK INSTAGRAM
+                  <input name="instagramHref" maxlength="120" />
+                </label>
+                <label class="full">
+                  COPYRIGHT
+                  <input name="copyright" maxlength="160" />
+                </label>
+                <label>
+                  VOLTAR AO TOPO
+                  <input name="backToTopLabel" maxlength="40" />
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button class="btn btn-yellow" type="submit" id="footer-save-btn">Salvar rodapé</button>
+              </div>
+            </form>
           </section>
         </div>
       </div>

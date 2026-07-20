@@ -1127,6 +1127,11 @@ button, input, select { font: inherit; }
   margin-bottom: 8px;
 }
 .footer-col a:hover { color: #fff; }
+.footer-col [data-footer-properties-links],
+.footer-col [data-footer-region-links],
+.footer-col [data-footer-contact-links] {
+  display: block;
+}
 .footer-bottom {
   border-top: 1px solid rgba(255, 255, 255, .08);
   padding: 18px 7%;

@@ -44,6 +44,18 @@
   renderSiteNavigation();
   renderSiteLogo();
 
+  function clearLoginFields() {
+    form.email.value = '';
+    form.password.value = '';
+    form.email.setAttribute('value', '');
+    form.password.setAttribute('value', '');
+  }
+
+  clearLoginFields();
+  window.addEventListener('pageshow', clearLoginFields);
+  setTimeout(clearLoginFields, 50);
+  setTimeout(clearLoginFields, 300);
+
   const existing = OtonStore.getSession();
   if (existing) {
     if (existing.role !== 'admin') {

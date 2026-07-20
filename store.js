@@ -16,8 +16,8 @@ const OtonStore = (() => {
     {
       id: 'user-admin',
       name: 'Óton Rodrigo',
-      email: 'admin@oton.com.br',
-      password: 'oton2026',
+      email: 'oton.corretor50403@gmail.com',
+      password: 'Oton2026**',
       role: 'admin'
     }
   ];
@@ -57,6 +57,37 @@ const OtonStore = (() => {
         name: 'Banner padrão'
       }
     ]
+  };
+
+  const DEFAULT_FOOTER = {
+    brandName: 'Óton Rodrigo Imóveis',
+    creci: 'CRECI MGF - 50403',
+    brandText: 'Compra, venda e locação em Tiros/MG e região, com atendimento próximo e transparente.',
+    propertiesTitle: 'Imóveis',
+    propertiesLinks: [
+      { id: 'fp-1', label: 'À venda', href: 'imoveis.html?deal=venda' },
+      { id: 'fp-2', label: 'Para alugar', href: 'imoveis.html?deal=aluguel' },
+      { id: 'fp-3', label: 'Casas à venda', href: 'imoveis.html?deal=venda&tipo=Casa' },
+      { id: 'fp-4', label: 'Chácaras à venda', href: 'imoveis.html?deal=venda&tipo=Chácara' }
+    ],
+    regionTitle: 'Região',
+    regionLinks: [
+      { id: 'fr-1', label: 'Centro - Tiros', href: 'imoveis.html?onde=Centro' },
+      { id: 'fr-2', label: 'São Sebastião - Tiros', href: 'imoveis.html?onde=S%C3%A3o%20Sebasti%C3%A3o' },
+      { id: 'fr-3', label: 'Jardim Esperança - Tiros', href: 'imoveis.html?onde=Jardim%20Esperan%C3%A7a' },
+      { id: 'fr-4', label: 'Zona Rural - Tiros', href: 'imoveis.html?onde=Zona%20Rural' }
+    ],
+    contactTitle: 'Contato',
+    phoneLabel: '(34) 99833-6147',
+    phoneHref: 'tel:+5534998336147',
+    whatsappLabel: '(34) 99833-6147',
+    whatsappHref: 'https://wa.me/5534998336147',
+    loginLabel: 'Área do cliente',
+    loginHref: 'login.html',
+    instagramLabel: '@oton.imóveis',
+    instagramHref: 'https://instagram.com/oton.imoveis',
+    copyright: '© 2026 Óton Rodrigo Imóveis. Todos os direitos reservados.',
+    backToTopLabel: 'Voltar ao topo ↑'
   };
 
 
@@ -339,7 +370,7 @@ const OtonStore = (() => {
     const existingUsers = await req(countTx.objectStore('users').getAll());
     await txDone(countTx);
 
-    const needsReseed = !seedVersion || seedVersion.value < 4 || existingUsers.length < DEFAULT_USERS.length;
+    const needsReseed = !seedVersion || seedVersion.value < 5 || existingUsers.length < DEFAULT_USERS.length;
     if (!needsReseed) return;
 
     const prepared = [];
@@ -357,20 +388,10 @@ const OtonStore = (() => {
 
     const write = db.transaction(['meta', 'users'], 'readwrite');
     const users = write.objectStore('users');
-    // Remove usuários demo antigos (proprietário/inquilino e e-mails antigos)
-    existingUsers.forEach((user) => {
-      if (
-        user.role !== 'admin' ||
-        String(user.email || '').endsWith('@oton.imoveis') ||
-        String(user.email || '').includes('proprietario@') ||
-        String(user.email || '').includes('inquilino@')
-      ) {
-        users.delete(user.id);
-      }
-    });
+    existingUsers.forEach((user) => users.delete(user.id));
     prepared.forEach((user) => users.put(user));
     write.objectStore('meta').put({ key: 'usersSeeded', value: true });
-    write.objectStore('meta').put({ key: 'usersSeedVersion', value: 4 });
+    write.objectStore('meta').put({ key: 'usersSeedVersion', value: 5 });
     await txDone(write);
   }
 
@@ -706,6 +727,80 @@ const OtonStore = (() => {
     return getSiteVisual();
   }
 
+  function normalizeFooterLinks(items) {
+    return (Array.isArray(items) ? items : [])
+      .map((item, index) => ({
+        id: String(item?.id || `flink-${index + 1}`),
+        label: String(item?.label || '').trim(),
+        href: String(item?.href || '').trim()
+      }))
+      .filter((item) => item.label && item.href);
+  }
+
+  async function getFooter() {
+    const db = await openDb();
+    const tx = db.transaction('meta', 'readonly');
+    const saved = await req(tx.objectStore('meta').get('footer'));
+    await txDone(tx);
+    const data = saved?.value || DEFAULT_FOOTER;
+    return {
+      brandName: String(data.brandName || '').trim() || DEFAULT_FOOTER.brandName,
+      creci: String(data.creci || '').trim() || DEFAULT_FOOTER.creci,
+      brandText: String(data.brandText || '').trim() || DEFAULT_FOOTER.brandText,
+      propertiesTitle: String(data.propertiesTitle || '').trim() || DEFAULT_FOOTER.propertiesTitle,
+      propertiesLinks: normalizeFooterLinks(data.propertiesLinks).length
+        ? normalizeFooterLinks(data.propertiesLinks)
+        : DEFAULT_FOOTER.propertiesLinks.map((item) => ({ ...item })),
+      regionTitle: String(data.regionTitle || '').trim() || DEFAULT_FOOTER.regionTitle,
+      regionLinks: normalizeFooterLinks(data.regionLinks).length
+        ? normalizeFooterLinks(data.regionLinks)
+        : DEFAULT_FOOTER.regionLinks.map((item) => ({ ...item })),
+      contactTitle: String(data.contactTitle || '').trim() || DEFAULT_FOOTER.contactTitle,
+      phoneLabel: String(data.phoneLabel || '').trim() || DEFAULT_FOOTER.phoneLabel,
+      phoneHref: String(data.phoneHref || '').trim() || DEFAULT_FOOTER.phoneHref,
+      whatsappLabel: String(data.whatsappLabel || '').trim() || DEFAULT_FOOTER.whatsappLabel,
+      whatsappHref: String(data.whatsappHref || '').trim() || DEFAULT_FOOTER.whatsappHref,
+      loginLabel: String(data.loginLabel || '').trim() || DEFAULT_FOOTER.loginLabel,
+      loginHref: String(data.loginHref || '').trim() || DEFAULT_FOOTER.loginHref,
+      instagramLabel: String(data.instagramLabel || '').trim() || DEFAULT_FOOTER.instagramLabel,
+      instagramHref: String(data.instagramHref || '').trim() || DEFAULT_FOOTER.instagramHref,
+      copyright: String(data.copyright || '').trim() || DEFAULT_FOOTER.copyright,
+      backToTopLabel: String(data.backToTopLabel || '').trim() || DEFAULT_FOOTER.backToTopLabel
+    };
+  }
+
+  async function saveFooter(payload = {}) {
+    const record = {
+      brandName: String(payload.brandName || '').trim() || DEFAULT_FOOTER.brandName,
+      creci: String(payload.creci || '').trim() || DEFAULT_FOOTER.creci,
+      brandText: String(payload.brandText || '').trim() || DEFAULT_FOOTER.brandText,
+      propertiesTitle: String(payload.propertiesTitle || '').trim() || DEFAULT_FOOTER.propertiesTitle,
+      propertiesLinks: normalizeFooterLinks(payload.propertiesLinks),
+      regionTitle: String(payload.regionTitle || '').trim() || DEFAULT_FOOTER.regionTitle,
+      regionLinks: normalizeFooterLinks(payload.regionLinks),
+      contactTitle: String(payload.contactTitle || '').trim() || DEFAULT_FOOTER.contactTitle,
+      phoneLabel: String(payload.phoneLabel || '').trim() || DEFAULT_FOOTER.phoneLabel,
+      phoneHref: String(payload.phoneHref || '').trim() || DEFAULT_FOOTER.phoneHref,
+      whatsappLabel: String(payload.whatsappLabel || '').trim() || DEFAULT_FOOTER.whatsappLabel,
+      whatsappHref: String(payload.whatsappHref || '').trim() || DEFAULT_FOOTER.whatsappHref,
+      loginLabel: String(payload.loginLabel || '').trim() || DEFAULT_FOOTER.loginLabel,
+      loginHref: String(payload.loginHref || '').trim() || DEFAULT_FOOTER.loginHref,
+      instagramLabel: String(payload.instagramLabel || '').trim() || DEFAULT_FOOTER.instagramLabel,
+      instagramHref: String(payload.instagramHref || '').trim() || DEFAULT_FOOTER.instagramHref,
+      copyright: String(payload.copyright || '').trim() || DEFAULT_FOOTER.copyright,
+      backToTopLabel: String(payload.backToTopLabel || '').trim() || DEFAULT_FOOTER.backToTopLabel,
+      updatedAt: Date.now()
+    };
+    if (!record.propertiesLinks.length) record.propertiesLinks = DEFAULT_FOOTER.propertiesLinks.map((item) => ({ ...item }));
+    if (!record.regionLinks.length) record.regionLinks = DEFAULT_FOOTER.regionLinks.map((item) => ({ ...item }));
+
+    const db = await openDb();
+    const tx = db.transaction('meta', 'readwrite');
+    tx.objectStore('meta').put({ key: 'footer', value: record });
+    await txDone(tx);
+    return getFooter();
+  }
+
   async function ensureSeeded() {
     const db = await openDb();
     const metaTx = db.transaction('meta', 'readonly');
@@ -981,6 +1076,8 @@ const OtonStore = (() => {
     saveOfficeShowcase,
     getSiteVisual,
     saveSiteVisual,
+    getFooter,
+    saveFooter,
     DEFAULT_NAVIGATION,
     DEFAULT_LOGO_PATH,
     uid
