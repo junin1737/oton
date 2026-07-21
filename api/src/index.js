@@ -70,6 +70,7 @@ const DEFAULT_OFFICE = {
 const DEFAULT_SITE_VISUAL = {
   intervalSeconds: 6,
   logoDataUrl: null,
+  hideLogo: false,
   banners: [
     {
       id: 'banner-default',
@@ -568,10 +569,13 @@ export default {
 
       if (path === '/site-visual' && request.method === 'GET') {
         const data = await getMeta(client, 'siteVisual', DEFAULT_SITE_VISUAL);
+        const hideLogo = Boolean(data.hideLogo);
+        const logoDataUrl = hideLogo ? null : (data.logoDataUrl || null);
         return json({
           intervalSeconds: Math.min(60, Math.max(2, Number(data.intervalSeconds) || 6)),
-          logoUrl: data.logoDataUrl || DEFAULT_LOGO_PATH,
-          logoDataUrl: data.logoDataUrl || null,
+          hideLogo,
+          logoDataUrl,
+          logoUrl: hideLogo ? '' : (logoDataUrl || DEFAULT_LOGO_PATH),
           banners: Array.isArray(data.banners) && data.banners.length ? data.banners : DEFAULT_SITE_VISUAL.banners
         }, 200, cors);
       }
@@ -581,19 +585,30 @@ export default {
         if (!auth) return json({ error: 'Não autorizado.' }, 401, cors);
         const body = await readJson(request) || {};
         const current = await getMeta(client, 'siteVisual', DEFAULT_SITE_VISUAL);
+        let hideLogo = Boolean(current.hideLogo);
         let logoDataUrl = current.logoDataUrl || null;
-        if (body.clearLogo) logoDataUrl = null;
-        else if (body.logoDataUrl) logoDataUrl = body.logoDataUrl;
+
+        if (body.removeLogo || body.hideLogo === true || body.clearLogo) {
+          hideLogo = true;
+          logoDataUrl = null;
+        } else if (body.logoDataUrl) {
+          hideLogo = false;
+          logoDataUrl = body.logoDataUrl;
+        } else if (body.hideLogo === false) {
+          hideLogo = false;
+        }
+
         const banners = Array.isArray(body.banners) ? body.banners : current.banners;
         const record = {
           intervalSeconds: Math.min(60, Math.max(2, Number(body.intervalSeconds) || 6)),
+          hideLogo,
           logoDataUrl,
           banners: banners.length ? banners : DEFAULT_SITE_VISUAL.banners
         };
         await setMeta(client, 'siteVisual', record);
         return json({
           ...record,
-          logoUrl: record.logoDataUrl || DEFAULT_LOGO_PATH
+          logoUrl: hideLogo ? '' : (record.logoDataUrl || DEFAULT_LOGO_PATH)
         }, 200, cors);
       }
 

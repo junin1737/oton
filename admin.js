@@ -367,7 +367,7 @@
   /** @type {{id:string,url:string,name:string,blob?:Blob,source?:string}[]} */
   let bannerPhotos = [];
   let logoBlob = null;
-  let logoKeep = true;
+  let logoRemoved = false;
   let logoPreviewUrl = '';
   let bannerUrls = [];
 
@@ -383,7 +383,7 @@
   function renderLogoPreview(url) {
     if (url) {
       logoPreview.innerHTML = `<img src="${url}" alt="Logo do site" />`;
-      logoRemove.hidden = String(url).includes('assets/logo-oton.png');
+      logoRemove.hidden = false;
     } else {
       logoPreview.innerHTML = '<span>Sem logo</span>';
       logoRemove.hidden = true;
@@ -446,10 +446,14 @@
       const data = await OtonStore.getSiteVisual();
       visualForm.intervalSeconds.value = data.intervalSeconds || 6;
       logoBlob = null;
-      logoKeep = Boolean(data.logoBlob);
+      logoRemoved = Boolean(data.hideLogo);
       if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(logoPreviewUrl);
-      logoPreviewUrl = data.logoBlob ? data.logoUrl : '';
-      renderLogoPreview(logoPreviewUrl || data.logoUrl || OtonStore.DEFAULT_LOGO_PATH);
+      logoPreviewUrl = '';
+      if (logoRemoved) {
+        renderLogoPreview('');
+      } else {
+        renderLogoPreview(data.logoUrl || OtonStore.DEFAULT_LOGO_PATH);
+      }
 
       revokeBannerUrls();
       bannerPhotos = (data.banners || []).map((item) => {
@@ -475,7 +479,7 @@
     try {
       const compressed = await OtonStore.compressImage(file, { maxWidth: 900, quality: 0.9 });
       logoBlob = compressed.blob;
-      logoKeep = true;
+      logoRemoved = false;
       if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(logoPreviewUrl);
       logoPreviewUrl = compressed.previewUrl;
       renderLogoPreview(logoPreviewUrl);
@@ -488,10 +492,10 @@
 
   logoRemove.addEventListener('click', () => {
     logoBlob = null;
-    logoKeep = false;
+    logoRemoved = true;
     if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(logoPreviewUrl);
     logoPreviewUrl = '';
-    renderLogoPreview(OtonStore.DEFAULT_LOGO_PATH);
+    renderLogoPreview('');
   });
 
   bannerDropzone.addEventListener('click', (event) => {
@@ -540,7 +544,8 @@
     try {
       const saved = await OtonStore.saveSiteVisual({
         logoBlob,
-        keepLogo: logoKeep,
+        removeLogo: logoRemoved && !logoBlob,
+        keepLogo: !logoRemoved,
         intervalSeconds: visualForm.intervalSeconds.value,
         banners: bannerPhotos
       });

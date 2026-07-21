@@ -308,9 +308,12 @@ const OtonStore = (() => {
 
   async function getSiteVisual() {
     const data = await api('/site-visual');
+    const hideLogo = Boolean(data.hideLogo);
     return {
       intervalSeconds: data.intervalSeconds,
-      logoUrl: data.logoUrl || DEFAULT_LOGO_PATH,
+      hideLogo,
+      logoUrl: hideLogo ? '' : (data.logoUrl || data.logoDataUrl || DEFAULT_LOGO_PATH),
+      logoDataUrl: hideLogo ? null : (data.logoDataUrl || null),
       logoBlob: null,
       banners: (data.banners || []).map((item) => ({
         id: item.id,
@@ -322,13 +325,22 @@ const OtonStore = (() => {
     };
   }
 
-  async function saveSiteVisual({ logoBlob = null, keepLogo = true, banners = [], intervalSeconds = 6 } = {}) {
+  async function saveSiteVisual({
+    logoBlob = null,
+    removeLogo = false,
+    keepLogo = true,
+    banners = [],
+    intervalSeconds = 6
+  } = {}) {
     let logoDataUrl;
     let clearLogo = false;
+    let hideLogo;
     if (logoBlob) {
       logoDataUrl = await blobToDataUrl(logoBlob);
-    } else if (!keepLogo) {
+      hideLogo = false;
+    } else if (removeLogo || !keepLogo) {
       clearLogo = true;
+      hideLogo = true;
     }
 
     const normalizedBanners = [];
@@ -347,12 +359,22 @@ const OtonStore = (() => {
     const saved = await api('/site-visual', {
       method: 'PUT',
       auth: true,
-      body: { logoDataUrl, clearLogo, banners: normalizedBanners, intervalSeconds }
+      body: {
+        logoDataUrl,
+        clearLogo,
+        removeLogo: hideLogo === true,
+        hideLogo,
+        banners: normalizedBanners,
+        intervalSeconds
+      }
     });
 
+    const savedHide = Boolean(saved.hideLogo);
     return {
       intervalSeconds: saved.intervalSeconds,
-      logoUrl: saved.logoUrl || DEFAULT_LOGO_PATH,
+      hideLogo: savedHide,
+      logoUrl: savedHide ? '' : (saved.logoUrl || DEFAULT_LOGO_PATH),
+      logoDataUrl: savedHide ? null : (saved.logoDataUrl || null),
       logoBlob: null,
       banners: (saved.banners || []).map((item) => ({
         id: item.id,

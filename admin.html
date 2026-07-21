@@ -189,6 +189,7 @@
                 <span>JPG, PNG ou WEBP · várias de uma vez · até dezenas de imagens</span>
                 <input id="photo-input" type="file" accept="image/*" multiple />
               </label>
+              <span class="image-size-hint">Tamanho ideal das fotos do imóvel: 1600 × 1200 px</span>
 
               <div class="photo-grid" id="photo-grid"></div>
 
@@ -227,14 +228,15 @@
                   <span>Sem logo</span>
                 </div>
                 <div class="bio-photo-actions">
-                  <p class="hint" style="margin:0 0 12px;">Logo do site (recomendado: PNG com fundo claro ou transparente).</p>
+                  <p class="hint" style="margin:0 0 12px;">Logo do topo (header e hero). PNG com fundo transparente funciona melhor.</p>
                   <div class="form-actions" style="margin:0;">
                     <label class="btn btn-line" style="cursor:pointer;">
                       Escolher logo
                       <input id="logo-input" type="file" accept="image/*" hidden />
                     </label>
-                    <button class="btn btn-danger" type="button" id="logo-remove" hidden>Usar logo padrão</button>
+                    <button class="btn btn-danger" type="button" id="logo-remove" hidden>Remover logo</button>
                   </div>
+                  <span class="image-size-hint">Tamanho ideal: 400 × 200 px</span>
                 </div>
               </div>
 
@@ -250,6 +252,7 @@
                 <span>ou clique para selecionar. Elas passam em carrossel na home.</span>
                 <input id="banner-photo-input" type="file" accept="image/*" multiple />
               </div>
+              <span class="image-size-hint">Tamanho ideal do banner: 1920 × 800 px</span>
               <div class="photo-meta">
                 <span id="banner-photo-count">0 banners</span>
               </div>
@@ -295,6 +298,7 @@
                     </label>
                     <button class="btn btn-danger" type="button" id="bio-photo-remove" hidden>Remover foto</button>
                   </div>
+                  <span class="image-size-hint">Tamanho ideal: 800 × 1000 px</span>
                 </div>
               </div>
 
@@ -330,6 +334,7 @@
                 <span>ou clique para selecionar. A capa marcada é a primeira foto do carrossel.</span>
                 <input id="office-photo-input" type="file" accept="image/*" multiple />
               </div>
+              <span class="image-size-hint">Tamanho ideal: 1600 × 900 px</span>
               <div class="photo-meta">
                 <span id="office-photo-count">0 fotos</span>
               </div>
@@ -373,6 +378,7 @@
                     </label>
                     <button class="btn btn-danger" type="button" id="footer-logo-remove" hidden>Remover logo</button>
                   </div>
+                  <span class="image-size-hint">Tamanho ideal: 300 × 180 px</span>
                 </div>
               </div>
               <div class="form-grid">
