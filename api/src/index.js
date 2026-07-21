@@ -23,6 +23,7 @@ const DEFAULT_FOOTER = {
   brandName: 'Óton Rodrigo Imóveis',
   creci: 'CRECI MGF - 50403',
   brandText: 'Compra, venda e locação em Tiros/MG e região, com atendimento próximo e transparente.',
+  logoDataUrl: null,
   propertiesTitle: 'Imóveis',
   propertiesLinks: [
     { id: 'fp-1', label: 'À venda', href: 'imoveis.html?deal=venda' },
@@ -44,6 +45,16 @@ const DEFAULT_FOOTER = {
   copyright: '© 2026 Óton Rodrigo Imóveis. Todos os direitos reservados.',
   backToTopLabel: 'Voltar ao topo ↑'
 };
+
+function mapFooter(data = {}) {
+  const merged = { ...DEFAULT_FOOTER, ...data };
+  const logoDataUrl = merged.logoDataUrl || null;
+  return {
+    ...merged,
+    logoDataUrl,
+    logoUrl: logoDataUrl || DEFAULT_LOGO_PATH
+  };
+}
 
 const DEFAULT_OFFICE = {
   title: 'Conheça nosso escritório',
@@ -483,15 +494,34 @@ export default {
 
       if (path === '/footer' && request.method === 'GET') {
         const data = await getMeta(client, 'footer', DEFAULT_FOOTER);
-        return json({ ...DEFAULT_FOOTER, ...data }, 200, cors);
+        return json(mapFooter(data), 200, cors);
       }
 
       if (path === '/footer' && request.method === 'PUT') {
         const auth = await requireAdmin(request, client);
         if (!auth) return json({ error: 'Não autorizado.' }, 401, cors);
         const body = await readJson(request) || {};
-        const record = { ...DEFAULT_FOOTER, ...body };
-        await setMeta(client, 'footer', record);
+        const current = await getMeta(client, 'footer', DEFAULT_FOOTER);
+        let logoDataUrl = current.logoDataUrl || null;
+        if (body.clearLogo) logoDataUrl = null;
+        else if (body.logoDataUrl) logoDataUrl = body.logoDataUrl;
+
+        const {
+          clearLogo,
+          logoUrl,
+          keepLogo,
+          logoBlob,
+          ...rest
+        } = body;
+
+        const record = mapFooter({
+          ...current,
+          ...rest,
+          logoDataUrl
+        });
+        const toStore = { ...record };
+        delete toStore.logoUrl;
+        await setMeta(client, 'footer', toStore);
         return json(record, 200, cors);
       }
 

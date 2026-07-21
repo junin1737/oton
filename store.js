@@ -235,11 +235,27 @@ const OtonStore = (() => {
   }
 
   async function getFooter() {
-    return api('/footer');
+    const data = await api('/footer');
+    return {
+      ...data,
+      logoUrl: data.logoUrl || data.logoDataUrl || DEFAULT_LOGO_PATH,
+      logoDataUrl: data.logoDataUrl || null
+    };
   }
 
-  async function saveFooter(payload) {
-    return api('/footer', { method: 'PUT', auth: true, body: payload });
+  async function saveFooter(payload = {}) {
+    const body = { ...payload };
+    if (payload.logoBlob) {
+      body.logoDataUrl = await blobToDataUrl(payload.logoBlob);
+    }
+    delete body.logoBlob;
+    delete body.logoUrl;
+    const data = await api('/footer', { method: 'PUT', auth: true, body });
+    return {
+      ...data,
+      logoUrl: data.logoUrl || data.logoDataUrl || DEFAULT_LOGO_PATH,
+      logoDataUrl: data.logoDataUrl || null
+    };
   }
 
   async function getOfficeShowcase() {

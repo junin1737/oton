@@ -360,6 +360,21 @@
             <p class="hint">Configure textos, links e contatos que aparecem no rodapé de todas as páginas.</p>
             <form id="footer-form">
               <h2 style="font-size:18px;margin:8px 0 12px;">Marca</h2>
+              <div class="bio-photo-row" style="margin-bottom:22px;">
+                <div class="bio-photo-preview" id="footer-logo-preview">
+                  <span>Sem logo</span>
+                </div>
+                <div class="bio-photo-actions">
+                  <p class="hint" style="margin:0 0 12px;">Logo do rodapé (a caixa branca ao lado do texto da marca). Recomendado: PNG.</p>
+                  <div class="form-actions" style="margin:0;">
+                    <label class="btn btn-line" style="cursor:pointer;">
+                      Escolher logo do rodapé
+                      <input id="footer-logo-input" type="file" accept="image/*" hidden />
+                    </label>
+                    <button class="btn btn-danger" type="button" id="footer-logo-remove" hidden>Usar logo padrão</button>
+                  </div>
+                </div>
+              </div>
               <div class="form-grid">
                 <label>
                   <span class="req">NOME</span>
