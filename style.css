@@ -1098,8 +1098,8 @@ button, input, select { font: inherit; }
   width: 120px;
   height: 70px;
   object-fit: contain;
-  background: #fff;
-  padding: 6px;
+  background: transparent;
+  padding: 0;
 }
 .footer-brand b {
   display: block;

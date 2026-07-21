@@ -772,8 +772,15 @@ async function renderSiteFooter() {
 
       const logoEl = footer.querySelector('[data-footer-logo]');
       if (logoEl) {
-        logoEl.src = data.logoUrl || data.logoDataUrl || OtonStore.DEFAULT_LOGO_PATH;
-        logoEl.alt = data.brandName || 'Óton Rodrigo Imóveis';
+        const logoUrl = data.hideLogo ? '' : (data.logoUrl || data.logoDataUrl || '');
+        if (logoUrl) {
+          logoEl.hidden = false;
+          logoEl.src = logoUrl;
+          logoEl.alt = data.brandName || 'Óton Rodrigo Imóveis';
+        } else {
+          logoEl.removeAttribute('src');
+          logoEl.hidden = true;
+        }
       }
 
       const propLinks = footer.querySelector('[data-footer-properties-links]');

@@ -236,10 +236,12 @@ const OtonStore = (() => {
 
   async function getFooter() {
     const data = await api('/footer');
+    const hideLogo = Boolean(data.hideLogo);
     return {
       ...data,
-      logoUrl: data.logoUrl || data.logoDataUrl || DEFAULT_LOGO_PATH,
-      logoDataUrl: data.logoDataUrl || null
+      hideLogo,
+      logoDataUrl: hideLogo ? null : (data.logoDataUrl || null),
+      logoUrl: hideLogo ? '' : (data.logoUrl || data.logoDataUrl || DEFAULT_LOGO_PATH)
     };
   }
 
@@ -247,14 +249,18 @@ const OtonStore = (() => {
     const body = { ...payload };
     if (payload.logoBlob) {
       body.logoDataUrl = await blobToDataUrl(payload.logoBlob);
+      body.hideLogo = false;
+      body.removeLogo = false;
     }
     delete body.logoBlob;
     delete body.logoUrl;
     const data = await api('/footer', { method: 'PUT', auth: true, body });
+    const hideLogo = Boolean(data.hideLogo);
     return {
       ...data,
-      logoUrl: data.logoUrl || data.logoDataUrl || DEFAULT_LOGO_PATH,
-      logoDataUrl: data.logoDataUrl || null
+      hideLogo,
+      logoDataUrl: hideLogo ? null : (data.logoDataUrl || null),
+      logoUrl: hideLogo ? '' : (data.logoUrl || data.logoDataUrl || DEFAULT_LOGO_PATH)
     };
   }
 

@@ -849,13 +849,13 @@
   /** @type {{id:string,label:string,href:string}[]} */
   let footerRegionDraft = [];
   let footerLogoBlob = null;
-  let footerLogoKeep = true;
+  let footerLogoRemoved = false;
   let footerLogoPreviewUrl = '';
 
   function renderFooterLogoPreview(url) {
     if (url) {
-      footerLogoPreview.innerHTML = `<img src="${url}" alt="Logo do rodapé" />`;
-      footerLogoRemove.hidden = String(url).includes('assets/logo-oton.png');
+      footerLogoPreview.innerHTML = `<img src="${url}" alt="Logo do rodapé" style="background:transparent;" />`;
+      footerLogoRemove.hidden = false;
     } else {
       footerLogoPreview.innerHTML = '<span>Sem logo</span>';
       footerLogoRemove.hidden = true;
@@ -918,12 +918,16 @@
       renderFooterLinkEditor(footerRegionLinksEl, footerRegionDraft, 'region');
 
       footerLogoBlob = null;
-      footerLogoKeep = Boolean(data.logoDataUrl);
+      footerLogoRemoved = Boolean(data.hideLogo);
       if (footerLogoPreviewUrl && footerLogoPreviewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(footerLogoPreviewUrl);
       }
       footerLogoPreviewUrl = '';
-      renderFooterLogoPreview(data.logoUrl || OtonStore.DEFAULT_LOGO_PATH);
+      if (footerLogoRemoved) {
+        renderFooterLogoPreview('');
+      } else {
+        renderFooterLogoPreview(data.logoUrl || OtonStore.DEFAULT_LOGO_PATH);
+      }
     } catch (error) {
       console.error(error);
       toast('Não foi possível carregar o rodapé.', 'err');
@@ -936,7 +940,7 @@
     try {
       const compressed = await OtonStore.compressImage(file, { maxWidth: 900, quality: 0.9 });
       footerLogoBlob = compressed.blob;
-      footerLogoKeep = true;
+      footerLogoRemoved = false;
       if (footerLogoPreviewUrl && footerLogoPreviewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(footerLogoPreviewUrl);
       }
@@ -951,12 +955,12 @@
 
   footerLogoRemove.addEventListener('click', () => {
     footerLogoBlob = null;
-    footerLogoKeep = false;
+    footerLogoRemoved = true;
     if (footerLogoPreviewUrl && footerLogoPreviewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(footerLogoPreviewUrl);
     }
     footerLogoPreviewUrl = '';
-    renderFooterLogoPreview(OtonStore.DEFAULT_LOGO_PATH);
+    renderFooterLogoPreview('');
   });
 
   function bindFooterLinkEditor(container, getDraft, setDraft) {
@@ -1022,19 +1026,23 @@
         copyright: footerForm.copyright.value,
         backToTopLabel: footerForm.backToTopLabel.value,
         logoBlob: footerLogoBlob,
-        clearLogo: !footerLogoKeep && !footerLogoBlob
+        removeLogo: footerLogoRemoved && !footerLogoBlob
       });
       footerPropDraft = saved.propertiesLinks || [];
       footerRegionDraft = saved.regionLinks || [];
       renderFooterLinkEditor(footerPropLinksEl, footerPropDraft, 'prop');
       renderFooterLinkEditor(footerRegionLinksEl, footerRegionDraft, 'region');
       footerLogoBlob = null;
-      footerLogoKeep = Boolean(saved.logoDataUrl);
+      footerLogoRemoved = Boolean(saved.hideLogo);
       if (footerLogoPreviewUrl && footerLogoPreviewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(footerLogoPreviewUrl);
       }
       footerLogoPreviewUrl = '';
-      renderFooterLogoPreview(saved.logoUrl || OtonStore.DEFAULT_LOGO_PATH);
+      if (footerLogoRemoved) {
+        renderFooterLogoPreview('');
+      } else {
+        renderFooterLogoPreview(saved.logoUrl || OtonStore.DEFAULT_LOGO_PATH);
+      }
       toast('Rodapé salvo. Atualize o site para conferir.');
     } catch (error) {
       console.error(error);

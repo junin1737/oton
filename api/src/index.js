@@ -24,6 +24,7 @@ const DEFAULT_FOOTER = {
   creci: 'CRECI MGF - 50403',
   brandText: 'Compra, venda e locação em Tiros/MG e região, com atendimento próximo e transparente.',
   logoDataUrl: null,
+  hideLogo: false,
   propertiesTitle: 'Imóveis',
   propertiesLinks: [
     { id: 'fp-1', label: 'À venda', href: 'imoveis.html?deal=venda' },
@@ -48,11 +49,13 @@ const DEFAULT_FOOTER = {
 
 function mapFooter(data = {}) {
   const merged = { ...DEFAULT_FOOTER, ...data };
-  const logoDataUrl = merged.logoDataUrl || null;
+  const hideLogo = Boolean(merged.hideLogo);
+  const logoDataUrl = hideLogo ? null : (merged.logoDataUrl || null);
   return {
     ...merged,
+    hideLogo,
     logoDataUrl,
-    logoUrl: logoDataUrl || DEFAULT_LOGO_PATH
+    logoUrl: hideLogo ? '' : (logoDataUrl || DEFAULT_LOGO_PATH)
   };
 }
 
@@ -502,12 +505,23 @@ export default {
         if (!auth) return json({ error: 'Não autorizado.' }, 401, cors);
         const body = await readJson(request) || {};
         const current = await getMeta(client, 'footer', DEFAULT_FOOTER);
+
+        let hideLogo = Boolean(current.hideLogo);
         let logoDataUrl = current.logoDataUrl || null;
-        if (body.clearLogo) logoDataUrl = null;
-        else if (body.logoDataUrl) logoDataUrl = body.logoDataUrl;
+
+        if (body.removeLogo || body.hideLogo === true || body.clearLogo) {
+          hideLogo = true;
+          logoDataUrl = null;
+        } else if (body.logoDataUrl) {
+          hideLogo = false;
+          logoDataUrl = body.logoDataUrl;
+        } else if (body.hideLogo === false) {
+          hideLogo = false;
+        }
 
         const {
           clearLogo,
+          removeLogo,
           logoUrl,
           keepLogo,
           logoBlob,
@@ -517,6 +531,7 @@ export default {
         const record = mapFooter({
           ...current,
           ...rest,
+          hideLogo,
           logoDataUrl
         });
         const toStore = { ...record };
