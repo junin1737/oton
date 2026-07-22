@@ -497,6 +497,8 @@ textarea { min-height: 96px; resize: vertical; }
 }
 .hint code {
   font-size: 12px;
+  background: #eef3f7;
+  padding: 1px 5px;
 }
 .keyword-suggestions {
   display: flex;
@@ -518,9 +520,6 @@ textarea { min-height: 96px; resize: vertical; }
   background: var(--yellow);
   border-color: var(--yellow);
   color: var(--deep);
-}
-  background: #eef3f7;
-  padding: 1px 5px;
 }
 
 @media (max-width: 720px) {
