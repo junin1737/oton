@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS properties (
   condo_name TEXT NOT NULL DEFAULT '',
   condo_fee REAL NOT NULL DEFAULT 0,
   description TEXT NOT NULL DEFAULT '',
+  keywords TEXT NOT NULL DEFAULT '',
   featured INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'disponivel',
   created_at INTEGER NOT NULL,

@@ -34,11 +34,11 @@ button, input, select { font: inherit; }
 
 /* Utility bar */
 .utility {
-  min-height: 52px;
+  min-height: 48px;
   padding: 0 7%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   background: var(--deep);
   color: #dbe5f1;
   font-size: 11px;
@@ -62,7 +62,8 @@ button, input, select { font: inherit; }
 .utility .contact-phone a {
   color: #fff;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 12px;
 }
 .utility .contact-phone small {
   color: var(--yellow);
@@ -343,9 +344,23 @@ button, input, select { font: inherit; }
   color: var(--yellow);
   font-weight: 700;
 }
+.quick-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid rgba(3, 30, 61, .12);
+  background: #f4f7fa;
+  color: var(--blue);
+  margin-bottom: 4px;
+}
+.quick-icon svg {
+  width: 30px;
+  height: 30px;
+}
 .quick h2 {
   font: 700 25px/1.15 'Playfair Display', serif;
-  margin: 22px 0 13px;
+  margin: 18px 0 13px;
   color: var(--blue);
 }
 .quick p {

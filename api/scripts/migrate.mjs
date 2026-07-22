@@ -156,6 +156,13 @@ for (const sql of statements) {
   await client.execute(sql);
 }
 
+try {
+  await client.execute(`ALTER TABLE properties ADD COLUMN keywords TEXT NOT NULL DEFAULT ''`);
+  console.log('Coluna keywords adicionada.');
+} catch {
+  /* coluna já existe */
+}
+
 const now = Date.now();
 const adminHash = hashPassword('Oton2026**');
 

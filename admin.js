@@ -170,6 +170,7 @@
     form.condoName.value = property.condoName || '';
     form.condoFee.value = property.condoFee || '';
     form.description.value = property.description || '';
+    form.keywords.value = property.keywords || '';
     form.featured.checked = Boolean(property.featured);
 
     revokeUrls();
@@ -276,6 +277,7 @@
         condoName: form.condoName.value,
         condoFee: form.condoFee.value,
         description: form.description.value,
+        keywords: form.keywords.value,
         featured: form.featured.checked
       };
 
@@ -1115,6 +1117,19 @@
   document.querySelector('#filter-status').addEventListener('change', renderList);
 
   form.addEventListener('submit', saveProperty);
+
+  document.querySelector('#keyword-suggestions')?.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-keyword]');
+    if (!btn) return;
+    const tag = btn.getAttribute('data-keyword');
+    const current = String(form.keywords.value || '').trim();
+    const parts = current ? current.split(/[\s,;]+/).filter(Boolean) : [];
+    if (parts.some((part) => part.toLowerCase() === tag.toLowerCase())) {
+      toast('Essa palavra-chave já foi adicionada.');
+      return;
+    }
+    form.keywords.value = current ? `${current} ${tag}` : tag;
+  });
 
   deleteBtn.addEventListener('click', async () => {
     const id = form.id.value;

@@ -185,6 +185,7 @@ function mapProperty(row) {
     condoName: row.condo_name || '',
     condoFee: Number(row.condo_fee) || 0,
     description: row.description || '',
+    keywords: row.keywords || '',
     featured: Boolean(row.featured),
     status: row.status || 'disponivel',
     createdAt: Number(row.created_at) || 0,
@@ -381,14 +382,14 @@ export default {
         await client.execute({
           sql: `INSERT INTO properties (
             id, title, type, deal, neighborhood, city, price, area, bedrooms, bathrooms, suites, parking,
-            condo_name, condo_fee, description, featured, status, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            condo_name, condo_fee, description, keywords, featured, status, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             title=excluded.title, type=excluded.type, deal=excluded.deal, neighborhood=excluded.neighborhood,
             city=excluded.city, price=excluded.price, area=excluded.area, bedrooms=excluded.bedrooms,
             bathrooms=excluded.bathrooms, suites=excluded.suites, parking=excluded.parking,
             condo_name=excluded.condo_name, condo_fee=excluded.condo_fee, description=excluded.description,
-            featured=excluded.featured, status=excluded.status, updated_at=excluded.updated_at`,
+            keywords=excluded.keywords, featured=excluded.featured, status=excluded.status, updated_at=excluded.updated_at`,
           args: [
             id,
             String(body.title || '').trim(),
@@ -405,6 +406,7 @@ export default {
             String(body.condoName || '').trim(),
             Number(body.condoFee) || 0,
             String(body.description || '').trim(),
+            String(body.keywords || '').trim(),
             body.featured ? 1 : 0,
             status,
             existing?.createdAt || now,

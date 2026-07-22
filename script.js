@@ -257,7 +257,7 @@ function filterProperties(source, params) {
   }
   if (where) {
     list = list.filter((item) =>
-      `${item.neighborhood} ${item.city} ${item.title} ${item.type}`.toLowerCase().includes(where)
+      `${item.neighborhood} ${item.city} ${item.title} ${item.type} ${item.keywords || ''} ${item.description || ''}`.toLowerCase().includes(where)
     );
   }
   if (min) list = list.filter((item) => item.price >= min);
@@ -514,12 +514,12 @@ async function renderSiteNavigation() {
   try {
     const items = await OtonStore.getNavigation();
     targets.forEach((nav) => {
-      const includeLogin = nav.dataset.includeLogin !== 'false';
+      const includeLogin = nav.dataset.includeLogin === 'true';
       const includeCta = nav.dataset.includeCta === 'true';
       const links = items
         .map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`)
         .join('');
-      const login = includeLogin ? '<a href="login.html">Entrar</a>' : '';
+      const login = includeLogin ? '<a href="login.html">Área administrativa</a>' : '';
       const cta = includeCta
         ? '<a class="header-cta" href="https://wa.me/5534998336147" target="_blank" rel="noopener">Fale conosco <b>↗</b></a>'
         : '';
@@ -802,7 +802,6 @@ async function renderSiteFooter() {
         contactLinks.innerHTML = `
           <a href="${escapeHtml(data.phoneHref)}">${escapeHtml(data.phoneLabel)}</a>
           <a href="${escapeHtml(data.whatsappHref)}" target="_blank" rel="noopener">${escapeHtml(data.whatsappLabel)}</a>
-          <a href="${escapeHtml(data.loginHref)}">${escapeHtml(data.loginLabel)}</a>
           <a href="${escapeHtml(data.instagramHref)}" target="_blank" rel="noopener">${escapeHtml(data.instagramLabel)}</a>
         `;
       }

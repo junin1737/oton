@@ -18,11 +18,11 @@
     try {
       const items = await OtonStore.getNavigation();
       targets.forEach((nav) => {
-        const includeLogin = nav.dataset.includeLogin !== 'false';
+        const includeLogin = nav.dataset.includeLogin === 'true';
         const links = items
           .map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`)
           .join('');
-        const login = includeLogin ? '<a href="login.html">Entrar</a>' : '';
+        const login = includeLogin ? '<a href="login.html">Área administrativa</a>' : '';
         nav.innerHTML = `${links}${login}`;
       });
     } catch (error) {
