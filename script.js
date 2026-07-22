@@ -663,15 +663,10 @@ async function renderOfficeShowcase() {
 async function renderSiteVisual() {
   try {
     const visual = await OtonStore.getSiteVisual();
+    // Logo do header (voltar ao início) permanece sempre — não depende do banner
     document.querySelectorAll('[data-site-logo]').forEach((img) => {
-      const logoUrl = visual.hideLogo ? '' : (visual.logoUrl || '');
-      if (logoUrl) {
-        img.hidden = false;
-        img.src = logoUrl;
-      } else {
-        img.removeAttribute('src');
-        img.hidden = true;
-      }
+      img.hidden = false;
+      img.src = OtonStore.DEFAULT_LOGO_PATH;
     });
 
     const hero = document.querySelector('[data-hero]');

@@ -356,9 +356,6 @@
   const officePhotoCount = document.querySelector('#office-photo-count');
   const officeSaveBtn = document.querySelector('#office-save-btn');
   const visualForm = document.querySelector('#site-visual-form');
-  const logoPreview = document.querySelector('#logo-preview');
-  const logoInput = document.querySelector('#logo-input');
-  const logoRemove = document.querySelector('#logo-remove');
   const bannerDropzone = document.querySelector('#banner-dropzone');
   const bannerPhotoInput = document.querySelector('#banner-photo-input');
   const bannerPhotoGrid = document.querySelector('#banner-photo-grid');
@@ -366,9 +363,6 @@
   const visualSaveBtn = document.querySelector('#visual-save-btn');
   /** @type {{id:string,url:string,name:string,blob?:Blob,source?:string}[]} */
   let bannerPhotos = [];
-  let logoBlob = null;
-  let logoRemoved = false;
-  let logoPreviewUrl = '';
   let bannerUrls = [];
 
   function trackBannerUrl(url) {
@@ -378,16 +372,6 @@
   function revokeBannerUrls() {
     bannerUrls.forEach((url) => URL.revokeObjectURL(url));
     bannerUrls = [];
-  }
-
-  function renderLogoPreview(url) {
-    if (url) {
-      logoPreview.innerHTML = `<img src="${url}" alt="Logo do site" />`;
-      logoRemove.hidden = false;
-    } else {
-      logoPreview.innerHTML = '<span>Sem logo</span>';
-      logoRemove.hidden = true;
-    }
   }
 
   function renderBannerPhotos() {
@@ -436,7 +420,7 @@
       toast(error.message || 'Falha ao processar imagens.', 'err');
     } finally {
       visualSaveBtn.disabled = false;
-      visualSaveBtn.textContent = 'Salvar banner e logo';
+      visualSaveBtn.textContent = 'Salvar banner';
       bannerPhotoInput.value = '';
     }
   }
@@ -445,16 +429,6 @@
     try {
       const data = await OtonStore.getSiteVisual();
       visualForm.intervalSeconds.value = data.intervalSeconds || 6;
-      logoBlob = null;
-      logoRemoved = Boolean(data.hideLogo);
-      if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(logoPreviewUrl);
-      logoPreviewUrl = '';
-      if (logoRemoved) {
-        renderLogoPreview('');
-      } else {
-        renderLogoPreview(data.logoUrl || OtonStore.DEFAULT_LOGO_PATH);
-      }
-
       revokeBannerUrls();
       bannerPhotos = (data.banners || []).map((item) => {
         trackBannerUrl(item.url);
@@ -469,34 +443,9 @@
       renderBannerPhotos();
     } catch (error) {
       console.error(error);
-      toast('Não foi possível carregar banner/logo.', 'err');
+      toast('Não foi possível carregar o banner.', 'err');
     }
   }
-
-  logoInput.addEventListener('change', async () => {
-    const file = logoInput.files?.[0];
-    if (!file) return;
-    try {
-      const compressed = await OtonStore.compressImage(file, { maxWidth: 900, quality: 0.9 });
-      logoBlob = compressed.blob;
-      logoRemoved = false;
-      if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(logoPreviewUrl);
-      logoPreviewUrl = compressed.previewUrl;
-      renderLogoPreview(logoPreviewUrl);
-    } catch (error) {
-      toast(error.message || 'Falha ao processar a logo.', 'err');
-    } finally {
-      logoInput.value = '';
-    }
-  });
-
-  logoRemove.addEventListener('click', () => {
-    logoBlob = null;
-    logoRemoved = true;
-    if (logoPreviewUrl && logoPreviewUrl.startsWith('blob:')) URL.revokeObjectURL(logoPreviewUrl);
-    logoPreviewUrl = '';
-    renderLogoPreview('');
-  });
 
   bannerDropzone.addEventListener('click', (event) => {
     if (event.target === bannerPhotoInput) return;
@@ -543,21 +492,19 @@
     visualSaveBtn.textContent = 'Salvando...';
     try {
       const saved = await OtonStore.saveSiteVisual({
-        logoBlob,
-        removeLogo: logoRemoved && !logoBlob,
-        keepLogo: !logoRemoved,
+        keepLogo: true,
         intervalSeconds: visualForm.intervalSeconds.value,
         banners: bannerPhotos
       });
-      toast('Banner e logo salvos. Confira na página inicial.');
+      toast('Banner salvo. Confira na página inicial.');
       await loadSiteVisualForm();
       void saved;
     } catch (error) {
       console.error(error);
-      toast(error.message || 'Não foi possível salvar banner/logo.', 'err');
+      toast(error.message || 'Não foi possível salvar o banner.', 'err');
     } finally {
       visualSaveBtn.disabled = false;
-      visualSaveBtn.textContent = 'Salvar banner e logo';
+      visualSaveBtn.textContent = 'Salvar banner';
     }
   });
 

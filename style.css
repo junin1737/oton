@@ -1095,11 +1095,12 @@ button, input, select { font: inherit; }
   align-items: flex-start;
 }
 .footer-brand img {
-  width: 120px;
-  height: 70px;
+  width: 200px;
+  height: 116px;
   object-fit: contain;
   background: transparent;
   padding: 0;
+  flex-shrink: 0;
 }
 .footer-brand b {
   display: block;
@@ -1318,18 +1319,34 @@ body.gallery-open { overflow: hidden; }
   }
   .utility-left { gap: 10px; }
   .utility-left > span:first-child,
-  .utility .instagram,
   .utility-announce { display: none; }
+  .utility .instagram {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .utility .instagram-handle { display: none; }
   .site-header {
     height: 78px;
     padding: 0 5%;
-    gap: 15px;
+    gap: 12px;
   }
   .logo img { width: 130px; height: 64px; }
-  .nav,
-  .header-cta { display: none; }
-  .menu-toggle { display: block; margin-left: auto; }
+  .nav { display: none; }
+  .site-header .header-cta {
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .site-header .header-cta b { margin-left: 6px; font-size: 13px; }
+  .menu-toggle { display: block; }
   .mobile-nav { inset-top: 78px; top: 78px; }
+  .mobile-nav .header-cta {
+    display: inline-flex;
+    width: fit-content;
+  }
   .hero { height: 610px; }
   .hero-content { padding: 54px 7% 0; }
   .hero-logo { width: 250px; padding: 10px 14px; margin-bottom: 24px; }
@@ -1380,6 +1397,10 @@ body.gallery-open { overflow: hidden; }
   .footer-main {
     padding: 36px 6% 24px;
     grid-template-columns: 1fr;
+  }
+  .footer-brand img {
+    width: 180px;
+    height: 104px;
   }
   .footer-bottom {
     padding: 16px 6%;

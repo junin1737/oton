@@ -30,7 +30,7 @@
     <main class="admin-main">
       <nav class="admin-tabs" aria-label="Seções do painel">
         <button class="admin-tab is-active" type="button" data-tab="imoveis" aria-selected="true">Imóveis</button>
-        <button class="admin-tab" type="button" data-tab="visual" aria-selected="false">Banner e logo</button>
+        <button class="admin-tab" type="button" data-tab="visual" aria-selected="false">Banner</button>
         <button class="admin-tab" type="button" data-tab="biografia" aria-selected="false">Biografia</button>
         <button class="admin-tab" type="button" data-tab="escritorio" aria-selected="false">Escritório</button>
         <button class="admin-tab" type="button" data-tab="menu" aria-selected="false">Menu</button>
@@ -219,27 +219,10 @@
 
         <div class="admin-tab-panel" id="tab-visual" data-tab-panel="visual" hidden>
           <section class="panel" id="site-visual-panel">
-            <h1>Banner e logo</h1>
-            <p class="hint">A logo aparece no topo do site. Os banners formam o carrossel da página inicial.</p>
+            <h1>Banner da home</h1>
+            <p class="hint">As imagens formam o carrossel de fundo da página inicial. A logo do topo do site permanece fixa e não é alterada aqui.</p>
 
             <form id="site-visual-form">
-              <div class="bio-photo-row" style="margin-bottom:22px;">
-                <div class="bio-photo-preview" id="logo-preview">
-                  <span>Sem logo</span>
-                </div>
-                <div class="bio-photo-actions">
-                  <p class="hint" style="margin:0 0 12px;">Logo do topo (header e hero). PNG com fundo transparente funciona melhor.</p>
-                  <div class="form-actions" style="margin:0;">
-                    <label class="btn btn-line" style="cursor:pointer;">
-                      Escolher logo
-                      <input id="logo-input" type="file" accept="image/*" hidden />
-                    </label>
-                    <button class="btn btn-danger" type="button" id="logo-remove" hidden>Remover logo</button>
-                  </div>
-                  <span class="image-size-hint">Tamanho ideal: 400 × 200 px</span>
-                </div>
-              </div>
-
               <div class="form-grid">
                 <label>
                   <span class="req">TEMPO ENTRE BANNERS (SEGUNDOS)</span>
@@ -259,7 +242,7 @@
               <div class="photo-grid" id="banner-photo-grid"></div>
 
               <div class="form-actions">
-                <button class="btn btn-yellow" type="submit" id="visual-save-btn">Salvar banner e logo</button>
+                <button class="btn btn-yellow" type="submit" id="visual-save-btn">Salvar banner</button>
               </div>
             </form>
           </section>
@@ -378,7 +361,7 @@
                     </label>
                     <button class="btn btn-danger" type="button" id="footer-logo-remove" hidden>Remover logo</button>
                   </div>
-                  <span class="image-size-hint">Tamanho ideal: 300 × 180 px</span>
+                  <span class="image-size-hint">Tamanho ideal: 400 × 240 px</span>
                 </div>
               </div>
               <div class="form-grid">

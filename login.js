@@ -32,16 +32,9 @@
 
   async function renderSiteLogo() {
     try {
-      const visual = await OtonStore.getSiteVisual();
       document.querySelectorAll('[data-site-logo]').forEach((img) => {
-        const logoUrl = visual.hideLogo ? '' : (visual.logoUrl || '');
-        if (logoUrl) {
-          img.hidden = false;
-          img.src = logoUrl;
-        } else {
-          img.removeAttribute('src');
-          img.hidden = true;
-        }
+        img.hidden = false;
+        img.src = OtonStore.DEFAULT_LOGO_PATH;
       });
     } catch (error) {
       console.error('Falha ao carregar logo:', error);
