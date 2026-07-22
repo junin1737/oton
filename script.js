@@ -58,11 +58,14 @@ function cardHtml(property) {
       ? [{ url: property.image }]
       : [];
   const cover = photos[0]?.url || '';
-  const count = photos.length;
+  const count = Number(property.photoCount) || photos.length;
+  const photoStyle = cover
+    ? `style="background-image:url('${cover}')"`
+    : 'style="background:linear-gradient(145deg,#d7e2ec,#b9c9d8)"';
 
   return `
     <article class="card" data-id="${property.id}" data-open-gallery="${property.id}" role="button" tabindex="0" aria-label="Ver detalhes de ${property.title}">
-      <div class="photo" style="background-image:url('${cover}')">
+      <div class="photo" ${photoStyle}>
         <span>${dealLabel(property.deal)}</span>
         <span class="code">${property.id}</span>
         ${count > 1 ? `<span class="photo-count">${count} fotos</span>` : ''}
@@ -184,21 +187,38 @@ function renderGalleryFrame() {
 }
 
 function openGallery(propertyId, startIndex = 0) {
-  const property = PROPERTIES.find((item) => item.id === propertyId);
-  if (!property) return;
-
-  const photos = getPropertyPhotos(property);
-  if (!photos.length) return;
-
-  galleryState = {
-    property,
-    index: Math.max(0, Math.min(startIndex, photos.length - 1))
-  };
+  const cached = PROPERTIES.find((item) => item.id === propertyId);
+  if (!cached) return;
 
   const root = ensureGallery();
   root.hidden = false;
   document.body.classList.add('gallery-open');
+
+  galleryState = {
+    property: cached,
+    index: Math.max(0, startIndex)
+  };
   renderGalleryFrame();
+
+  // Carrega galeria completa sob demanda (lista pública traz só a capa)
+  OtonStore.getPublicProperty(propertyId)
+    .then((full) => {
+      if (!full || galleryState.property?.id !== propertyId) return;
+      const merged = {
+        ...cached,
+        ...full,
+        image: full.image || cached.image,
+        photos: full.photos?.length ? full.photos : cached.photos
+      };
+      const idx = PROPERTIES.findIndex((item) => item.id === propertyId);
+      if (idx >= 0) PROPERTIES[idx] = { ...PROPERTIES[idx], ...merged };
+      galleryState.property = merged;
+      galleryState.index = Math.max(0, Math.min(galleryState.index, getPropertyPhotos(merged).length - 1));
+      renderGalleryFrame();
+    })
+    .catch((error) => {
+      console.warn('Não foi possível carregar todas as fotos do imóvel:', error);
+    });
 }
 
 function closeGallery() {
@@ -757,6 +777,22 @@ async function renderSiteFooter() {
   const footers = document.querySelectorAll('[data-site-footer]');
   if (!footers.length) return;
 
+  const applyLogo = (logoEl, logoUrl, brandName) => {
+    if (!logoEl) return;
+    if (!logoUrl) {
+      logoEl.hidden = true;
+      return;
+    }
+    logoEl.hidden = false;
+    logoEl.alt = brandName || 'Óton Rodrigo Imóveis';
+    logoEl.onerror = () => {
+      logoEl.onerror = null;
+      logoEl.src = OtonStore.DEFAULT_LOGO_PATH;
+      logoEl.hidden = false;
+    };
+    logoEl.src = logoUrl;
+  };
+
   try {
     const data = await OtonStore.getFooter();
     footers.forEach((footer) => {
@@ -773,17 +809,10 @@ async function renderSiteFooter() {
       setText('[data-footer-copyright]', data.copyright);
 
       const logoEl = footer.querySelector('[data-footer-logo]');
-      if (logoEl) {
-        const logoUrl = data.hideLogo ? '' : (data.logoUrl || data.logoDataUrl || '');
-        if (logoUrl) {
-          logoEl.hidden = false;
-          logoEl.src = logoUrl;
-          logoEl.alt = data.brandName || 'Óton Rodrigo Imóveis';
-        } else {
-          logoEl.removeAttribute('src');
-          logoEl.hidden = true;
-        }
-      }
+      const logoUrl = data.hideLogo
+        ? ''
+        : (data.logoUrl || data.logoDataUrl || OtonStore.DEFAULT_LOGO_PATH);
+      applyLogo(logoEl, logoUrl, data.brandName);
 
       const propLinks = footer.querySelector('[data-footer-properties-links]');
       if (propLinks) {
@@ -813,7 +842,52 @@ async function renderSiteFooter() {
     });
   } catch (error) {
     console.error('Falha ao carregar rodapé:', error);
+    // Mantém logo padrão do HTML se a API falhar
+    footers.forEach((footer) => {
+      const logoEl = footer.querySelector('[data-footer-logo]');
+      if (logoEl) {
+        logoEl.hidden = false;
+        logoEl.src = OtonStore.DEFAULT_LOGO_PATH;
+      }
+    });
   }
+}
+
+async function hydratePropertyCovers(list) {
+  const pending = (list || []).filter((item) => item.coverPending || (item.hasPhotos && !item.image));
+  if (!pending.length) return;
+
+  const queue = [...pending];
+  const workers = Array.from({ length: Math.min(2, queue.length) }, async () => {
+    while (queue.length) {
+      const item = queue.shift();
+      if (!item) break;
+      try {
+        const full = await OtonStore.getPublicProperty(item.id);
+        const cover = full?.photos?.[0]?.url || full?.image || '';
+        const photos = Array.isArray(full?.photos) ? full.photos : (cover ? [{ url: cover }] : []);
+        const idx = PROPERTIES.findIndex((p) => p.id === item.id);
+        if (idx < 0) continue;
+        PROPERTIES[idx] = {
+          ...PROPERTIES[idx],
+          ...full,
+          image: cover,
+          photos,
+          photoCount: photos.length || PROPERTIES[idx].photoCount || 0,
+          coverPending: false,
+          hasPhotos: photos.length > 0
+        };
+        const card = document.querySelector(`.card[data-id="${item.id}"] .photo`);
+        if (card && cover) {
+          card.style.backgroundImage = `url('${cover}')`;
+          card.style.background = '';
+        }
+      } catch (error) {
+        console.warn(`Capa do imóvel ${item.id} indisponível:`, error);
+      }
+    }
+  });
+  await Promise.all(workers);
 }
 
 async function boot() {
@@ -822,20 +896,34 @@ async function boot() {
   setupGalleryTriggers();
   ensureGallery();
 
-  try {
-    PROPERTIES = await OtonStore.listPublicProperties();
-  } catch (error) {
-    console.error('Falha ao carregar imóveis do armazenamento local:', error);
-    PROPERTIES = [];
-  }
+  // Não bloqueia logo/menu/rodapé enquanto os imóveis carregam (crítico no mobile)
+  const propsPromise = OtonStore.listPublicProperties()
+    .then((list) => {
+      PROPERTIES = Array.isArray(list) ? list : [];
+    })
+    .catch((error) => {
+      console.error('Falha ao carregar imóveis:', error);
+      PROPERTIES = [];
+    });
+
+  await Promise.all([
+    renderSiteNavigation(),
+    renderSiteVisual(),
+    renderSiteFooter(),
+    renderBiography(),
+    renderOfficeShowcase(),
+    propsPromise
+  ]);
 
   renderFeatured();
   setupListingPage();
-  await renderSiteNavigation();
-  await renderSiteVisual();
-  await renderSiteFooter();
-  renderBiography();
-  renderOfficeShowcase();
+  // Capas embutidas (base64) carregam em segundo plano, 2 por vez
+  hydratePropertyCovers(PROPERTIES).then(() => {
+    renderFeatured();
+    if (document.querySelector('[data-listing-grid]')) {
+      setupListingPage();
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', boot);

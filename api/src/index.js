@@ -218,6 +218,54 @@ async function getPropertyFull(client, id) {
   };
 }
 
+async function listPublicPropertiesLight(client) {
+  const rows = await client.execute({
+    sql: `SELECT * FROM properties WHERE status = 'disponivel' ORDER BY updated_at DESC`
+  });
+  if (!rows.rows.length) return [];
+
+  const covers = await client.execute({
+    sql: `SELECT id, property_id, sort_order, source, url, name
+          FROM (
+            SELECT id, property_id, sort_order, source, url, name,
+              ROW_NUMBER() OVER (PARTITION BY property_id ORDER BY sort_order ASC) AS rn
+            FROM photos
+          )
+          WHERE rn = 1`
+  });
+  const counts = await client.execute({
+    sql: 'SELECT property_id, COUNT(*) AS c FROM photos GROUP BY property_id'
+  });
+  const coverById = new Map();
+  for (const row of covers.rows) {
+    coverById.set(row.property_id, mapPhoto(row));
+  }
+  const countById = new Map();
+  for (const row of counts.rows) {
+    countById.set(row.property_id, Number(row.c) || 0);
+  }
+
+  return rows.rows.map((row) => {
+    const base = mapProperty(row);
+    const cover = coverById.get(row.id);
+    const rawUrl = cover?.url || '';
+    const photoCount = countById.get(row.id) || 0;
+    // data: URLs estouram o Worker/mobile — lista leve só com metadados
+    const isEmbedded = rawUrl.startsWith('data:');
+    const lightUrl = !rawUrl || isEmbedded ? '' : rawUrl;
+    return {
+      ...base,
+      status: 'disponivel',
+      image: lightUrl,
+      photos: lightUrl ? [{ id: cover.id, url: lightUrl, name: cover.name || '' }] : [],
+      photoIds: cover ? [cover.id] : [],
+      photoCount,
+      hasPhotos: photoCount > 0,
+      coverPending: Boolean(rawUrl) && !lightUrl
+    };
+  });
+}
+
 async function readJson(request) {
   try {
     return await request.json();
@@ -312,25 +360,32 @@ export default {
       }
 
       if (path === '/properties/public' && request.method === 'GET') {
-        const rows = await client.execute({
-          sql: `SELECT * FROM properties WHERE status = 'disponivel' ORDER BY updated_at DESC`
+        const list = await listPublicPropertiesLight(client);
+        return json(list, 200, {
+          ...cors,
+          'Cache-Control': 'public, max-age=30, stale-while-revalidate=60'
         });
-        const list = [];
-        for (const row of rows.rows) {
-          const full = await getPropertyFull(client, row.id);
-          const photos = (full.photos || []).map((photo) => ({
-            id: photo.id,
-            url: photo.url,
-            name: photo.name
-          }));
-          list.push({
-            ...full,
-            status: 'disponivel',
-            image: photos[0]?.url || '',
-            photos
-          });
+      }
+
+      const publicPropertyMatch = path.match(/^\/properties\/public\/([^/]+)$/);
+      if (publicPropertyMatch && request.method === 'GET') {
+        const full = await getPropertyFull(client, decodeURIComponent(publicPropertyMatch[1]));
+        if (!full || full.status !== 'disponivel') {
+          return json({ error: 'Imóvel não encontrado.' }, 404, cors);
         }
-        return json(list, 200, cors);
+        const photos = (full.photos || []).map((photo) => ({
+          id: photo.id,
+          url: photo.url,
+          name: photo.name
+        }));
+        return json({
+          ...full,
+          image: photos[0]?.url || '',
+          photos
+        }, 200, {
+          ...cors,
+          'Cache-Control': 'public, max-age=30, stale-while-revalidate=60'
+        });
       }
 
       if (path === '/properties' && request.method === 'GET') {
@@ -500,7 +555,16 @@ export default {
 
       if (path === '/footer' && request.method === 'GET') {
         const data = await getMeta(client, 'footer', DEFAULT_FOOTER);
-        return json(mapFooter(data), 200, cors);
+        const mapped = mapFooter(data);
+        // Evita payload gigante no mobile: se a logo custom for data URL enorme, usa a padrão
+        if (mapped.logoUrl && mapped.logoUrl.startsWith('data:') && mapped.logoUrl.length > 90000) {
+          mapped.logoUrl = DEFAULT_LOGO_PATH;
+          mapped.logoDataUrl = null;
+        }
+        return json(mapped, 200, {
+          ...cors,
+          'Cache-Control': 'public, max-age=30, stale-while-revalidate=60'
+        });
       }
 
       if (path === '/footer' && request.method === 'PUT') {

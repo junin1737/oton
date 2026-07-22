@@ -892,7 +892,7 @@
     const file = footerLogoInput.files?.[0];
     if (!file) return;
     try {
-      const compressed = await OtonStore.compressImage(file, { maxWidth: 900, quality: 0.9 });
+      const compressed = await OtonStore.compressImage(file, { maxWidth: 360, quality: 0.72 });
       footerLogoBlob = compressed.blob;
       footerLogoRemoved = false;
       if (footerLogoPreviewUrl && footerLogoPreviewUrl.startsWith('blob:')) {

@@ -34,7 +34,7 @@ const OtonStore = (() => {
     }
   }
 
-  async function api(path, { method = 'GET', body, auth = false } = {}) {
+  async function api(path, { method = 'GET', body, auth = false, timeoutMs = 25000, retries = 1 } = {}) {
     const headers = {};
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (auth) {
@@ -42,31 +42,51 @@ const OtonStore = (() => {
       if (token) headers.Authorization = `Bearer ${token}`;
     }
 
-    let response;
-    try {
-      response = await fetch(`${apiBase()}${path}`, {
-        method,
-        headers,
-        body: body !== undefined ? JSON.stringify(body) : undefined
-      });
-    } catch (error) {
-      throw new Error('Não foi possível conectar à API. Verifique se o Worker está no ar.');
-    }
-
-    let data = null;
-    const text = await response.text();
-    if (text) {
+    let lastError = null;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timer = controller
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : null;
       try {
-        data = JSON.parse(text);
-      } catch {
-        data = { error: text };
+        const response = await fetch(`${apiBase()}${path}`, {
+          method,
+          headers,
+          body: body !== undefined ? JSON.stringify(body) : undefined,
+          signal: controller?.signal
+        });
+        if (timer) clearTimeout(timer);
+
+        let data = null;
+        const text = await response.text();
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = { error: text };
+          }
+        }
+
+        if (!response.ok) {
+          throw new Error(data?.error || `Erro na API (${response.status})`);
+        }
+        return data;
+      } catch (error) {
+        if (timer) clearTimeout(timer);
+        lastError = error;
+        const aborted = error?.name === 'AbortError';
+        const retryable = aborted || /fetch|network|Failed|conectar|503|502|504/i.test(String(error?.message || error));
+        if (attempt < retries && retryable) {
+          await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
+          continue;
+        }
+        if (aborted) {
+          throw new Error('A requisição demorou demais. Tente novamente.');
+        }
+        throw new Error(error?.message || 'Não foi possível conectar à API. Verifique se o Worker está no ar.');
       }
     }
-
-    if (!response.ok) {
-      throw new Error(data?.error || `Erro na API (${response.status})`);
-    }
-    return data;
+    throw lastError || new Error('Falha ao chamar a API.');
   }
 
   function uid(prefix = 'id') {
@@ -435,10 +455,14 @@ const OtonStore = (() => {
   }
 
   async function listPublicProperties() {
-    return api('/properties/public');
+    return api('/properties/public', { timeoutMs: 20000, retries: 2 });
   }
 
-  async function compressImage(file, { maxWidth = 1600, quality = 0.78 } = {}) {
+  async function getPublicProperty(id) {
+    return api(`/properties/public/${encodeURIComponent(id)}`, { timeoutMs: 25000, retries: 1 });
+  }
+
+  async function compressImage(file, { maxWidth = 1400, quality = 0.72 } = {}) {
     if (!file.type.startsWith('image/')) {
       throw new Error('Arquivo inválido. Envie apenas imagens.');
     }
@@ -469,6 +493,7 @@ const OtonStore = (() => {
     ROLES,
     listProperties,
     listPublicProperties,
+    getPublicProperty,
     getProperty,
     saveProperty,
     deleteProperty,
