@@ -1,6 +1,8 @@
 const WHATSAPP = '5534998336147';
 
 let PROPERTIES = [];
+let listingPageBound = false;
+let deepLinkOpened = false;
 
 function formatPrice(property) {
   if (!property.price) return 'Consulte o valor';
@@ -53,14 +55,27 @@ function buildSpecs(property) {
 }
 
 function propertyShareUrl(propertyId) {
-  const url = new URL(window.location.href);
-  if (!/imoveis\.html$/i.test(url.pathname)) {
-    url.pathname = url.pathname.replace(/[^/]*$/, 'imoveis.html');
+  const site = String(window.OTON_SITE_URL || 'https://otonimoveis.com').replace(/\/+$/, '');
+  return `${site}/imoveis.html?id=${encodeURIComponent(propertyId)}`;
+}
+
+function propertyPagePath(propertyId) {
+  return `imoveis.html?id=${encodeURIComponent(propertyId)}`;
+}
+
+function openPropertyPage(propertyId) {
+  if (!propertyId) return;
+  const onListing = Boolean(document.querySelector('[data-listing-grid]'));
+  if (onListing) {
+    const next = propertyPagePath(propertyId);
+    window.history.pushState({ propertyId }, '', next);
+    deepLinkOpened = true;
+    syncListingControls();
+    renderListing();
+    openGallery(propertyId, 0);
+    return;
   }
-  url.search = '';
-  url.hash = '';
-  url.searchParams.set('id', propertyId);
-  return url.toString();
+  window.location.href = propertyPagePath(propertyId);
 }
 
 function propertyDetailText(property) {
@@ -95,8 +110,9 @@ function condoLine(property) {
 }
 
 function whatsappLink(property) {
+  const share = propertyShareUrl(property.id);
   const text = encodeURIComponent(
-    `Olá! Tenho interesse no imóvel ${property.id} — ${property.title} (${property.neighborhood}, ${property.city}/MG).`
+    `Olá! Tenho interesse no imóvel ${property.id} — ${property.title} (${property.neighborhood}, ${property.city}/MG).\n${share}`
   );
   return `https://wa.me/${WHATSAPP}?text=${text}`;
 }
@@ -253,7 +269,13 @@ async function shareCurrentProperty() {
   if (!property?.id) return;
   const url = propertyShareUrl(property.id);
   const title = `${property.id} — ${property.title}`;
-  const text = `Olha este imóvel: ${property.title} (${property.neighborhood}, ${property.city}/MG)`;
+  const text = `Olha este imóvel da Óton Rodrigo Imóveis:\n${title}\n${property.neighborhood}, ${property.city}/MG\n${url}`;
+  const btn = document.querySelector('[data-gallery-share]');
+
+  // Garante que a URL da página também fique no imóvel (caso alguém copie da barra)
+  if (document.querySelector('[data-listing-grid]')) {
+    window.history.replaceState({ propertyId: property.id }, '', propertyPagePath(property.id));
+  }
 
   try {
     if (navigator.share) {
@@ -264,26 +286,32 @@ async function shareCurrentProperty() {
     if (error?.name === 'AbortError') return;
   }
 
+  let copied = false;
   try {
     await navigator.clipboard.writeText(url);
-    const btn = document.querySelector('[data-gallery-share]');
-    if (btn) {
-      const original = btn.textContent;
-      btn.textContent = 'Link copiado!';
-      setTimeout(() => {
-        btn.textContent = original;
-      }, 1800);
-    }
+    copied = true;
   } catch {
+    /* fallback abaixo */
+  }
+
+  // Fallback prático: WhatsApp com o link do imóvel no texto
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+
+  if (btn) {
+    const original = btn.textContent;
+    btn.textContent = copied ? 'Link copiado!' : 'Abrindo WhatsApp...';
+    setTimeout(() => {
+      btn.textContent = original;
+    }, 2000);
+  } else if (!copied) {
     window.prompt('Copie o link deste imóvel:', url);
   }
 }
 
 function setPropertyDeepLink(propertyId) {
-  const url = new URL(window.location.href);
-  if (propertyId) url.searchParams.set('id', propertyId);
-  else url.searchParams.delete('id');
-  window.history.replaceState({}, '', url);
+  if (!document.querySelector('[data-listing-grid]')) return;
+  const next = propertyId ? propertyPagePath(propertyId) : 'imoveis.html';
+  window.history.replaceState(propertyId ? { propertyId } : {}, '', next);
 }
 
 function openGallery(propertyId, startIndex = 0) {
@@ -328,11 +356,7 @@ function closeGallery() {
   root.hidden = true;
   document.body.classList.remove('gallery-open');
   galleryState = { property: null, index: 0 };
-  if (document.querySelector('[data-listing-grid]') && getParams().get('id')) {
-    setPropertyDeepLink('');
-    syncListingControls();
-    renderListing();
-  }
+  // Mantém ?id= na URL para o link continuar compartilhavel
 }
 
 function stepGallery(delta) {
@@ -347,17 +371,34 @@ function stepGallery(delta) {
 function setupGalleryTriggers() {
   document.addEventListener('click', (event) => {
     if (event.target.closest('a.card-whatsapp')) return;
+    if (event.target.closest('[data-gallery-share]')) return;
     const trigger = event.target.closest('[data-open-gallery]');
     if (!trigger) return;
     event.preventDefault();
-    openGallery(trigger.getAttribute('data-open-gallery'), 0);
+    openPropertyPage(trigger.getAttribute('data-open-gallery'));
   });
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     const trigger = event.target.closest('[data-open-gallery]');
     if (!trigger || event.target.closest('a')) return;
     event.preventDefault();
-    openGallery(trigger.getAttribute('data-open-gallery'), 0);
+    openPropertyPage(trigger.getAttribute('data-open-gallery'));
+  });
+  window.addEventListener('popstate', () => {
+    if (!document.querySelector('[data-listing-grid]')) return;
+    const id = getParams().get('id');
+    syncListingControls();
+    renderListing();
+    if (id && PROPERTIES.some((item) => item.id === id)) {
+      openGallery(id, 0);
+    } else {
+      const root = document.querySelector('#photo-gallery');
+      if (root) {
+        root.hidden = true;
+        document.body.classList.remove('gallery-open');
+      }
+      galleryState = { property: null, index: 0 };
+    }
   });
 }
 
@@ -420,6 +461,10 @@ function renderListing() {
   const empty = document.querySelector('[data-empty-state]');
 
   if (title) {
+    const idParam = params.get('id');
+    if (idParam) {
+      title.textContent = `Imóvel ${idParam}`;
+    } else {
     const dealParam = params.get('deal');
     const dealText = dealParam === 'aluguel'
       ? 'para alugar'
@@ -446,10 +491,17 @@ function renderListing() {
     if (where) parts.push(`em ${where}`);
     else parts.push('em Tiros/MG e região');
     title.textContent = parts.join(' ');
+    }
   }
 
   if (meta) {
-    meta.innerHTML = `<strong>${results.length}</strong> ${results.length === 1 ? 'imóvel encontrado' : 'imóveis encontrados'}`;
+    if (params.get('id')) {
+      meta.innerHTML = results.length
+        ? `Exibindo o imóvel <strong>${params.get('id')}</strong> · <a href="imoveis.html" data-clear-property-link>Ver todos</a>`
+        : `Imóvel <strong>${params.get('id')}</strong> não encontrado · <a href="imoveis.html">Ver todos</a>`;
+    } else {
+      meta.innerHTML = `<strong>${results.length}</strong> ${results.length === 1 ? 'imóvel encontrado' : 'imóveis encontrados'}`;
+    }
   }
 
   if (!results.length) {
@@ -545,9 +597,6 @@ function setupHomeSearch() {
     window.location.href = query ? `imoveis.html?${query}` : 'imoveis.html';
   });
 }
-
-let listingPageBound = false;
-let deepLinkOpened = false;
 
 function setupListingPage() {
   if (!document.querySelector('[data-listing-grid]')) return;
