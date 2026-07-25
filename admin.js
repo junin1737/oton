@@ -159,8 +159,12 @@
 
     form.price.required = !isFazenda;
     form.priceFarm.required = isFazenda;
+    form.area.disabled = isFazenda;
+    form.builtArea.disabled = isFazenda || !isCasa;
 
     if (isFazenda) {
+      form.area.value = '';
+      form.builtArea.value = '';
       if (!farmPriceManual) syncFarmTotalPrice();
     } else if (form.priceFarm.value) {
       form.price.value = form.priceFarm.value;

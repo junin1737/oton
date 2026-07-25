@@ -228,6 +228,10 @@ label {
   color: #6d7b86;
   letter-spacing: .3px;
 }
+label[hidden],
+[data-field-group][hidden] {
+  display: none !important;
+}
 label span.req::after {
   content: ' *';
   color: var(--danger);
