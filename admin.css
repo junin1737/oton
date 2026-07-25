@@ -242,6 +242,7 @@ input, select, textarea {
 }
 input:focus, select:focus, textarea:focus { border-color: var(--yellow); }
 textarea { min-height: 96px; resize: vertical; }
+textarea.farm-notes { min-height: 220px; }
 .check {
   display: flex;
   align-items: center;

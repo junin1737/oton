@@ -32,6 +32,7 @@
   let officePhotos = [];
   let officeCoverId = null;
   let officeUrls = [];
+  let farmPriceManual = false;
 
   function toast(message, type = 'ok') {
     toastEl.textContent = message;
@@ -132,6 +133,49 @@
     }
   }
 
+  function setGroupHidden(group, hidden) {
+    document.querySelectorAll(`[data-field-group="${group}"]`).forEach((el) => {
+      el.hidden = hidden;
+    });
+  }
+
+  function syncTypeFields() {
+    const type = form.type.value;
+    const isCasa = type === 'Casa';
+    const isFazenda = type === 'Fazenda';
+
+    setGroupHidden('fazenda', !isFazenda);
+    setGroupHidden('casa-built', !isCasa);
+    setGroupHidden('price-default', isFazenda);
+    setGroupHidden('area-default', isFazenda);
+    setGroupHidden('urban', isFazenda);
+    setGroupHidden('condo', isFazenda);
+    setGroupHidden('description-default', isFazenda);
+
+    const areaLabel = document.querySelector('[data-area-label]');
+    if (areaLabel) {
+      areaLabel.textContent = isCasa ? 'ÁREA DO LOTE (m²)' : 'ÁREA (m²)';
+    }
+
+    form.price.required = !isFazenda;
+    form.priceFarm.required = isFazenda;
+
+    if (isFazenda) {
+      if (!farmPriceManual) syncFarmTotalPrice();
+    } else if (form.priceFarm.value) {
+      form.price.value = form.priceFarm.value;
+    }
+  }
+
+  function syncFarmTotalPrice() {
+    const hectares = Number(form.hectares.value) || 0;
+    const perHa = Number(form.pricePerHectare.value) || 0;
+    if (!hectares || !perHa) return;
+    const total = Math.round(hectares * perHa);
+    form.priceFarm.value = total;
+    form.price.value = total;
+  }
+
   function resetForm() {
     form.reset();
     form.id.value = '';
@@ -139,11 +183,18 @@
     form.city.value = 'Tiros';
     form.status.value = 'disponivel';
     form.featured.checked = false;
+    form.builtArea.value = '';
+    form.hectares.value = '';
+    form.pricePerHectare.value = '';
+    form.priceFarm.value = '';
+    form.farmNotes.value = '';
+    farmPriceManual = false;
     draftPhotos = [];
     revokeUrls();
     renderPhotos();
     formTitle.textContent = 'Cadastrar imóvel';
     deleteBtn.hidden = true;
+    syncTypeFields();
   }
 
   async function loadProperty(id) {
@@ -162,7 +213,11 @@
     form.neighborhood.value = property.neighborhood || '';
     form.city.value = property.city || 'Tiros';
     form.price.value = property.price || 0;
+    form.priceFarm.value = property.price || 0;
     form.area.value = property.area || 0;
+    form.builtArea.value = property.builtArea || 0;
+    form.hectares.value = property.hectares || 0;
+    form.pricePerHectare.value = property.pricePerHectare || 0;
     form.bedrooms.value = property.bedrooms || 0;
     form.suites.value = property.suites || 0;
     form.bathrooms.value = property.bathrooms || 0;
@@ -170,8 +225,10 @@
     form.condoName.value = property.condoName || '';
     form.condoFee.value = property.condoFee || '';
     form.description.value = property.description || '';
+    form.farmNotes.value = property.farmNotes || '';
     form.keywords.value = property.keywords || '';
     form.featured.checked = Boolean(property.featured);
+    farmPriceManual = true;
 
     revokeUrls();
     draftPhotos = (property.photos || []).map((photo) => {
@@ -190,6 +247,7 @@
     formTitle.textContent = `Editar ${property.id}`;
     deleteBtn.hidden = false;
     renderPhotos();
+    syncTypeFields();
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -260,6 +318,8 @@
     saveBtn.textContent = 'Salvando...';
 
     try {
+      const isFazenda = form.type.value === 'Fazenda';
+      const priceValue = isFazenda ? form.priceFarm.value : form.price.value;
       const payload = {
         id: form.id.value || null,
         title: form.title.value,
@@ -268,15 +328,19 @@
         type: form.type.value,
         neighborhood: form.neighborhood.value,
         city: form.city.value,
-        price: form.price.value,
-        area: form.area.value,
-        bedrooms: form.bedrooms.value,
-        suites: form.suites.value,
-        bathrooms: form.bathrooms.value,
-        parking: form.parking.value,
-        condoName: form.condoName.value,
-        condoFee: form.condoFee.value,
-        description: form.description.value,
+        price: priceValue,
+        area: isFazenda ? 0 : form.area.value,
+        builtArea: form.type.value === 'Casa' ? form.builtArea.value : 0,
+        hectares: isFazenda ? form.hectares.value : 0,
+        pricePerHectare: isFazenda ? form.pricePerHectare.value : 0,
+        bedrooms: isFazenda ? 0 : form.bedrooms.value,
+        suites: isFazenda ? 0 : form.suites.value,
+        bathrooms: isFazenda ? 0 : form.bathrooms.value,
+        parking: isFazenda ? 0 : form.parking.value,
+        condoName: isFazenda ? '' : form.condoName.value,
+        condoFee: isFazenda ? 0 : form.condoFee.value,
+        description: isFazenda ? '' : form.description.value,
+        farmNotes: isFazenda ? form.farmNotes.value : '',
         keywords: form.keywords.value,
         featured: form.featured.checked
       };
@@ -1116,7 +1180,25 @@
   document.querySelector('#filter-deal').addEventListener('change', renderList);
   document.querySelector('#filter-status').addEventListener('change', renderList);
 
+  form.type.addEventListener('change', () => {
+    farmPriceManual = false;
+    syncTypeFields();
+  });
+  form.hectares.addEventListener('input', () => {
+    farmPriceManual = false;
+    syncFarmTotalPrice();
+  });
+  form.pricePerHectare.addEventListener('input', () => {
+    farmPriceManual = false;
+    syncFarmTotalPrice();
+  });
+  form.priceFarm.addEventListener('input', () => {
+    farmPriceManual = true;
+    form.price.value = form.priceFarm.value;
+  });
+
   form.addEventListener('submit', saveProperty);
+  syncTypeFields();
 
   document.querySelector('#keyword-suggestions')?.addEventListener('click', (event) => {
     const btn = event.target.closest('[data-keyword]');

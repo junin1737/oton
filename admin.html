@@ -118,6 +118,7 @@
                     <option>Apartamento</option>
                     <option>Terreno</option>
                     <option>Chácara</option>
+                    <option>Fazenda</option>
                     <option>Rural</option>
                     <option>Comercial</option>
                   </select>
@@ -130,41 +131,62 @@
                   <span class="req">CIDADE</span>
                   <input name="city" required value="Tiros" />
                 </label>
-                <label>
+                <label data-field-group="price-default">
                   <span class="req">PREÇO (R$)</span>
                   <input name="price" type="number" min="0" step="1" required placeholder="0" />
                 </label>
-                <label>
-                  ÁREA (m²)
+                <label data-field-group="area-default">
+                  <span data-area-label>ÁREA (m²)</span>
                   <input name="area" type="number" min="0" step="0.01" placeholder="0" />
                 </label>
-                <label>
+                <label data-field-group="casa-built" hidden>
+                  ÁREA CONSTRUÍDA (m²)
+                  <input name="builtArea" type="number" min="0" step="0.01" placeholder="0" />
+                </label>
+                <label data-field-group="fazenda" hidden>
+                  TAMANHO TOTAL (hectares)
+                  <input name="hectares" type="number" min="0" step="0.01" placeholder="0" />
+                </label>
+                <label data-field-group="fazenda" hidden>
+                  VALOR POR HECTARE (R$)
+                  <input name="pricePerHectare" type="number" min="0" step="1" placeholder="0" />
+                </label>
+                <label data-field-group="fazenda" hidden>
+                  <span class="req">VALOR TOTAL (R$)</span>
+                  <input name="priceFarm" type="number" min="0" step="1" placeholder="0" />
+                  <span class="hint" style="margin:6px 0 0;display:block;">Calculado automaticamente (hectares × valor/ha). Pode editar manualmente.</span>
+                </label>
+                <label data-field-group="urban">
                   QUARTOS
                   <input name="bedrooms" type="number" min="0" step="1" value="0" />
                 </label>
-                <label>
+                <label data-field-group="urban">
                   SUÍTES
                   <input name="suites" type="number" min="0" step="1" value="0" />
                 </label>
-                <label>
+                <label data-field-group="urban">
                   BANHEIROS
                   <input name="bathrooms" type="number" min="0" step="1" value="0" />
                 </label>
-                <label>
+                <label data-field-group="urban">
                   VAGAS
                   <input name="parking" type="number" min="0" step="1" value="0" />
                 </label>
-                <label>
+                <label data-field-group="condo">
                   NOME DO CONDOMÍNIO
                   <input name="condoName" maxlength="120" placeholder="Ex.: Manhattan II" />
                 </label>
-                <label>
+                <label data-field-group="condo">
                   VALOR DO CONDOMÍNIO (R$)
                   <input name="condoFee" type="number" min="0" step="0.01" placeholder="0,00" />
                 </label>
-                <label class="full">
+                <label class="full" data-field-group="description-default">
                   DESCRIÇÃO
                   <textarea name="description" placeholder="Detalhes do imóvel, diferenciais, documentação..."></textarea>
+                </label>
+                <label class="full" data-field-group="fazenda" hidden>
+                  OBSERVAÇÕES DA FAZENDA
+                  <textarea name="farmNotes" class="farm-notes" placeholder="Ex.: casa sede, galpão, poço, pasto, cercas, curral..."></textarea>
                 </label>
                 <label class="full">
                   PALAVRAS-CHAVE
@@ -174,6 +196,7 @@
                     <button type="button" data-keyword="casa">casa</button>
                     <button type="button" data-keyword="apartamento">apartamento</button>
                     <button type="button" data-keyword="chácara">chácara</button>
+                    <button type="button" data-keyword="fazenda">fazenda</button>
                     <button type="button" data-keyword="terreno">terreno</button>
                     <button type="button" data-keyword="rural">rural</button>
                     <button type="button" data-keyword="comercial">comercial</button>

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "migrate": "node scripts/migrate.mjs"
+    "migrate": "node scripts/migrate.mjs",
+    "migrate:photos": "node scripts/migrate-photos-to-r2.mjs",
+    "migrate:fields": "node scripts/migrate-property-fields.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15"

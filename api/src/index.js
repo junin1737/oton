@@ -123,6 +123,82 @@ function uid(prefix = 'id') {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function mediaBaseFromRequest(request) {
+  return `${new URL(request.url).origin}/media/`;
+}
+
+function extractMediaKey(url = '') {
+  const marker = '/media/';
+  const idx = String(url).indexOf(marker);
+  if (idx === -1) return null;
+  return decodeURIComponent(String(url).slice(idx + marker.length).split('?')[0]);
+}
+
+function parseDataUrl(dataUrl) {
+  const match = String(dataUrl || '').match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return null;
+  const contentType = match[1] || 'image/jpeg';
+  const binary = atob(match[2]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return { contentType, bytes };
+}
+
+async function deletePropertyMedia(env, propertyId) {
+  if (!env.MEDIA) return;
+  const prefix = `properties/${propertyId}/`;
+  let cursor;
+  do {
+    const listed = await env.MEDIA.list({ prefix, cursor, limit: 100 });
+    await Promise.all((listed.objects || []).map((obj) => env.MEDIA.delete(obj.key)));
+    cursor = listed.truncated ? listed.cursor : undefined;
+  } while (cursor);
+}
+
+async function persistPhoto(env, request, propertyId, item, index) {
+  const photoId = item.id && !String(item.id).startsWith('local-') ? String(item.id) : uid('ph');
+  const photoUrl = item.url || item.dataUrl || '';
+  if (!photoUrl) return null;
+
+  const mediaBase = mediaBaseFromRequest(request);
+
+  if (photoUrl.startsWith('data:')) {
+    if (!env.MEDIA) {
+      throw new Error('Storage R2 não configurado. Ative o R2 e faça o deploy novamente.');
+    }
+    const parsed = parseDataUrl(photoUrl);
+    if (!parsed) return null;
+    const ext = parsed.contentType.includes('png') ? 'png' : 'jpg';
+    const key = `properties/${propertyId}/${photoId}.${ext}`;
+    await env.MEDIA.put(key, parsed.bytes, {
+      httpMetadata: { contentType: parsed.contentType },
+      customMetadata: { propertyId, photoId }
+    });
+    return {
+      id: photoId,
+      source: 'r2',
+      url: `${mediaBase}${key}`,
+      name: item.name || `foto-${index + 1}.${ext}`
+    };
+  }
+
+  if (extractMediaKey(photoUrl)) {
+    return {
+      id: photoId,
+      source: 'r2',
+      url: photoUrl,
+      name: item.name || `foto-${index + 1}.jpg`
+    };
+  }
+
+  return {
+    id: photoId,
+    source: 'url',
+    url: photoUrl,
+    name: item.name || `foto-${index + 1}.jpg`
+  };
+}
+
 function publicUser(row) {
   return {
     id: row.id,
@@ -178,6 +254,9 @@ function mapProperty(row) {
     city: row.city,
     price: Number(row.price) || 0,
     area: Number(row.area) || 0,
+    builtArea: Number(row.built_area) || 0,
+    hectares: Number(row.hectares) || 0,
+    pricePerHectare: Number(row.price_per_hectare) || 0,
     bedrooms: Number(row.bedrooms) || 0,
     bathrooms: Number(row.bathrooms) || 0,
     suites: Number(row.suites) || 0,
@@ -185,6 +264,7 @@ function mapProperty(row) {
     condoName: row.condo_name || '',
     condoFee: Number(row.condo_fee) || 0,
     description: row.description || '',
+    farmNotes: row.farm_notes || '',
     keywords: row.keywords || '',
     featured: Boolean(row.featured),
     status: row.status || 'disponivel',
@@ -289,7 +369,20 @@ export default {
 
     try {
       if (path === '/health' && request.method === 'GET') {
-        return json({ ok: true }, 200, cors);
+        return json({ ok: true, media: Boolean(env.MEDIA) }, 200, cors);
+      }
+
+      const mediaMatch = path.match(/^\/media\/(.+)$/);
+      if (mediaMatch && request.method === 'GET') {
+        if (!env.MEDIA) return new Response('Storage indisponível', { status: 503, headers: cors });
+        const key = decodeURIComponent(mediaMatch[1]);
+        const object = await env.MEDIA.get(key);
+        if (!object) return new Response('Arquivo não encontrado', { status: 404, headers: cors });
+        const headers = new Headers(cors);
+        headers.set('Content-Type', object.httpMetadata?.contentType || 'application/octet-stream');
+        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+        headers.set('ETag', object.httpEtag || '');
+        return new Response(object.body, { status: 200, headers });
       }
 
       if (path === '/auth/login' && request.method === 'POST') {
@@ -436,15 +529,18 @@ export default {
         const status = ['disponivel', 'alugado', 'vendido'].includes(body.status) ? body.status : 'disponivel';
         await client.execute({
           sql: `INSERT INTO properties (
-            id, title, type, deal, neighborhood, city, price, area, bedrooms, bathrooms, suites, parking,
-            condo_name, condo_fee, description, keywords, featured, status, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            id, title, type, deal, neighborhood, city, price, area, built_area, hectares, price_per_hectare,
+            bedrooms, bathrooms, suites, parking, condo_name, condo_fee, description, farm_notes, keywords,
+            featured, status, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             title=excluded.title, type=excluded.type, deal=excluded.deal, neighborhood=excluded.neighborhood,
-            city=excluded.city, price=excluded.price, area=excluded.area, bedrooms=excluded.bedrooms,
-            bathrooms=excluded.bathrooms, suites=excluded.suites, parking=excluded.parking,
-            condo_name=excluded.condo_name, condo_fee=excluded.condo_fee, description=excluded.description,
-            keywords=excluded.keywords, featured=excluded.featured, status=excluded.status, updated_at=excluded.updated_at`,
+            city=excluded.city, price=excluded.price, area=excluded.area, built_area=excluded.built_area,
+            hectares=excluded.hectares, price_per_hectare=excluded.price_per_hectare,
+            bedrooms=excluded.bedrooms, bathrooms=excluded.bathrooms, suites=excluded.suites,
+            parking=excluded.parking, condo_name=excluded.condo_name, condo_fee=excluded.condo_fee,
+            description=excluded.description, farm_notes=excluded.farm_notes, keywords=excluded.keywords,
+            featured=excluded.featured, status=excluded.status, updated_at=excluded.updated_at`,
           args: [
             id,
             String(body.title || '').trim(),
@@ -454,6 +550,9 @@ export default {
             String(body.city || 'Tiros').trim(),
             Number(body.price) || 0,
             Number(body.area) || 0,
+            Number(body.builtArea) || 0,
+            Number(body.hectares) || 0,
+            Number(body.pricePerHectare) || 0,
             Number(body.bedrooms) || 0,
             Number(body.bathrooms) || 0,
             Number(body.suites) || 0,
@@ -461,6 +560,7 @@ export default {
             String(body.condoName || '').trim(),
             Number(body.condoFee) || 0,
             String(body.description || '').trim(),
+            String(body.farmNotes || '').trim(),
             String(body.keywords || '').trim(),
             body.featured ? 1 : 0,
             status,
@@ -470,22 +570,31 @@ export default {
         });
 
         const photosDraft = Array.isArray(body.photos) ? body.photos : [];
-        await client.execute({ sql: 'DELETE FROM photos WHERE property_id = ?', args: [id] });
+        const oldKeys = (existing?.photos || [])
+          .map((photo) => extractMediaKey(photo.url))
+          .filter(Boolean);
+
+        const savedPhotos = [];
         for (let index = 0; index < photosDraft.length; index += 1) {
-          const item = photosDraft[index];
-          const photoUrl = item.url || item.dataUrl || '';
-          if (!photoUrl) continue;
-          const source = photoUrl.startsWith('data:') ? 'data' : 'url';
+          const persisted = await persistPhoto(env, request, id, photosDraft[index], index);
+          if (persisted) savedPhotos.push(persisted);
+        }
+
+        const keepKeys = new Set(savedPhotos.map((photo) => extractMediaKey(photo.url)).filter(Boolean));
+        if (env.MEDIA) {
+          await Promise.all(
+            oldKeys
+              .filter((key) => !keepKeys.has(key))
+              .map((key) => env.MEDIA.delete(key))
+          );
+        }
+
+        await client.execute({ sql: 'DELETE FROM photos WHERE property_id = ?', args: [id] });
+        for (let index = 0; index < savedPhotos.length; index += 1) {
+          const item = savedPhotos[index];
           await client.execute({
             sql: 'INSERT INTO photos (id, property_id, sort_order, source, url, name) VALUES (?, ?, ?, ?, ?, ?)',
-            args: [
-              item.id || uid('ph'),
-              id,
-              index,
-              source,
-              photoUrl,
-              item.name || `foto-${index + 1}.jpg`
-            ]
+            args: [item.id, id, index, item.source, item.url, item.name]
           });
         }
 
@@ -496,9 +605,60 @@ export default {
         const auth = await requireAdmin(request, client);
         if (!auth) return json({ error: 'Não autorizado.' }, 401, cors);
         const id = decodeURIComponent(propertyMatch[1]);
+        await deletePropertyMedia(env, id);
         await client.execute({ sql: 'DELETE FROM photos WHERE property_id = ?', args: [id] });
         await client.execute({ sql: 'DELETE FROM properties WHERE id = ?', args: [id] });
         return json({ ok: true }, 200, cors);
+      }
+
+      if (path === '/admin/migrate-photos' && request.method === 'POST') {
+        const auth = await requireAdmin(request, client);
+        if (!auth) return json({ error: 'Não autorizado.' }, 401, cors);
+        if (!env.MEDIA) {
+          return json({ error: 'R2 não está ativo neste Worker.' }, 503, cors);
+        }
+
+        const rows = await client.execute('SELECT * FROM photos ORDER BY property_id, sort_order');
+        let migrated = 0;
+        let skipped = 0;
+        let failed = 0;
+
+        for (const row of rows.rows) {
+          const url = row.url || '';
+          if (!url.startsWith('data:')) {
+            skipped += 1;
+            continue;
+          }
+          try {
+            const persisted = await persistPhoto(
+              env,
+              request,
+              row.property_id,
+              { id: row.id, url, name: row.name },
+              Number(row.sort_order) || 0
+            );
+            if (!persisted) {
+              failed += 1;
+              continue;
+            }
+            await client.execute({
+              sql: 'UPDATE photos SET source = ?, url = ? WHERE id = ?',
+              args: [persisted.source, persisted.url, row.id]
+            });
+            migrated += 1;
+          } catch (error) {
+            console.error('migrate photo failed', row.id, error);
+            failed += 1;
+          }
+        }
+
+        return json({
+          ok: true,
+          total: rows.rows.length,
+          migrated,
+          skipped,
+          failed
+        }, 200, cors);
       }
 
       if (path === '/biography' && request.method === 'GET') {

@@ -26,12 +26,62 @@ function matchesDeal(itemDeal, filterDeal) {
 
 function buildSpecs(property) {
   const parts = [];
-  if (property.area) parts.push(`${property.area.toLocaleString('pt-BR')} m²`);
+  const type = String(property.type || '');
+
+  if (type === 'Fazenda') {
+    if (property.hectares) {
+      parts.push(`${Number(property.hectares).toLocaleString('pt-BR')} ha`);
+    }
+    if (property.pricePerHectare) {
+      parts.push(`R$ ${Number(property.pricePerHectare).toLocaleString('pt-BR')}/ha`);
+    }
+    return parts.map((part, index) => (index ? `<i></i>${part}` : part)).join('');
+  }
+
+  if (type === 'Casa') {
+    if (property.area) parts.push(`Lote ${Number(property.area).toLocaleString('pt-BR')} m²`);
+    if (property.builtArea) parts.push(`Const. ${Number(property.builtArea).toLocaleString('pt-BR')} m²`);
+  } else if (property.area) {
+    parts.push(`${Number(property.area).toLocaleString('pt-BR')} m²`);
+  }
+
   if (property.bedrooms) parts.push(`${property.bedrooms} ${property.bedrooms > 1 ? 'quartos' : 'quarto'}`);
   if (property.suites) parts.push(`${property.suites} ${property.suites > 1 ? 'suítes' : 'suíte'}`);
   if (property.bathrooms) parts.push(`${property.bathrooms} ${property.bathrooms > 1 ? 'banheiros' : 'banheiro'}`);
   if (property.parking) parts.push(`${property.parking} ${property.parking > 1 ? 'vagas' : 'vaga'}`);
   return parts.map((part, index) => (index ? `<i></i>${part}` : part)).join('');
+}
+
+function propertyShareUrl(propertyId) {
+  const url = new URL(window.location.href);
+  if (!/imoveis\.html$/i.test(url.pathname)) {
+    url.pathname = url.pathname.replace(/[^/]*$/, 'imoveis.html');
+  }
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('id', propertyId);
+  return url.toString();
+}
+
+function propertyDetailText(property) {
+  const chunks = [];
+  const type = String(property.type || '');
+  if (type === 'Fazenda') {
+    if (property.hectares) chunks.push(`Área total: ${Number(property.hectares).toLocaleString('pt-BR')} hectares`);
+    if (property.pricePerHectare) {
+      chunks.push(`Valor por hectare: R$ ${Number(property.pricePerHectare).toLocaleString('pt-BR')}`);
+    }
+    const notes = String(property.farmNotes || '').trim();
+    if (notes) chunks.push(notes);
+  } else {
+    if (type === 'Casa') {
+      if (property.area) chunks.push(`Área do lote: ${Number(property.area).toLocaleString('pt-BR')} m²`);
+      if (property.builtArea) chunks.push(`Área construída: ${Number(property.builtArea).toLocaleString('pt-BR')} m²`);
+    }
+    const desc = String(property.description || '').trim();
+    if (desc) chunks.push(desc);
+  }
+  return chunks.join('\n\n');
 }
 
 function condoLine(property) {
@@ -102,18 +152,22 @@ function ensureGallery() {
         <img class="photo-gallery-image" alt="" />
         <button class="photo-gallery-nav next" type="button" data-gallery-next aria-label="Próxima foto">›</button>
       </div>
-      <div class="photo-gallery-footer">
+        <div class="photo-gallery-footer">
         <div class="photo-gallery-info">
           <p class="photo-gallery-counter"></p>
           <h3 class="photo-gallery-title"></h3>
           <p class="photo-gallery-meta"></p>
+          <p class="photo-gallery-specs"></p>
           <p class="photo-gallery-description"></p>
           <strong class="photo-gallery-price"></strong>
         </div>
-        <a class="photo-gallery-whatsapp" href="#" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5A11 11 0 0 0 2.1 16.8L1 23l6.4-1.7A11 11 0 0 0 12 23a11 11 0 0 0 8.5-19.5ZM12 21a9 9 0 0 1-4.6-1.3l-.3-.2-3.8 1 1-3.7-.2-.3A9 9 0 1 1 12 21Zm5-6.6c-.3-.1-1.6-.8-1.9-.9s-.4-.1-.6.1-.7.9-.8 1-.3.2-.6.1a7.4 7.4 0 0 1-2.2-1.4 8.2 8.2 0 0 1-1.5-1.9c-.2-.3 0-.4.1-.6l.5-.6c.1-.2.1-.3 0-.5l-.9-2.1c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3a2.3 2.3 0 0 0-.7 1.7 4 4 0 0 0 .8 2.1 9.2 9.2 0 0 0 3.5 3.4 12 12 0 0 0 2.3.9 3.2 3.2 0 0 0 1.8.1 2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .1-1.2c-.1-.1-.3-.2-.5-.3Z"/></svg>
-          Chamar no WhatsApp
-        </a>
+        <div class="photo-gallery-actions">
+          <button class="photo-gallery-share" type="button" data-gallery-share>Compartilhar imóvel</button>
+          <a class="photo-gallery-whatsapp" href="#" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 3.5A11 11 0 0 0 2.1 16.8L1 23l6.4-1.7A11 11 0 0 0 12 23a11 11 0 0 0 8.5-19.5ZM12 21a9 9 0 0 1-4.6-1.3l-.3-.2-3.8 1 1-3.7-.2-.3A9 9 0 1 1 12 21Zm5-6.6c-.3-.1-1.6-.8-1.9-.9s-.4-.1-.6.1-.7.9-.8 1-.3.2-.6.1a7.4 7.4 0 0 1-2.2-1.4 8.2 8.2 0 0 1-1.5-1.9c-.2-.3 0-.4.1-.6l.5-.6c.1-.2.1-.3 0-.5l-.9-2.1c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3a2.3 2.3 0 0 0-.7 1.7 4 4 0 0 0 .8 2.1 9.2 9.2 0 0 0 3.5 3.4 12 12 0 0 0 2.3.9 3.2 3.2 0 0 0 1.8.1 2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .1-1.2c-.1-.1-.3-.2-.5-.3Z"/></svg>
+            Chamar no WhatsApp
+          </a>
+        </div>
       </div>
     </div>
   `;
@@ -123,6 +177,7 @@ function ensureGallery() {
     if (event.target.closest('[data-gallery-close]')) closeGallery();
     if (event.target.closest('[data-gallery-prev]')) stepGallery(-1);
     if (event.target.closest('[data-gallery-next]')) stepGallery(1);
+    if (event.target.closest('[data-gallery-share]')) shareCurrentProperty();
   });
 
   document.addEventListener('keydown', (event) => {
@@ -154,6 +209,7 @@ function renderGalleryFrame() {
   const counter = root.querySelector('.photo-gallery-counter');
   const title = root.querySelector('.photo-gallery-title');
   const meta = root.querySelector('.photo-gallery-meta');
+  const specs = root.querySelector('.photo-gallery-specs');
   const description = root.querySelector('.photo-gallery-description');
   const price = root.querySelector('.photo-gallery-price');
   const whatsapp = root.querySelector('.photo-gallery-whatsapp');
@@ -164,7 +220,7 @@ function renderGalleryFrame() {
   image.alt = `${property.title} — foto ${index + 1}`;
   counter.textContent = `${index + 1} / ${photos.length}`;
   title.textContent = property.title;
-  meta.textContent = `${property.id} · ${property.neighborhood} · ${property.city}/MG · ${dealLabel(property.deal)}`;
+  meta.textContent = `${property.id} · ${property.type} · ${property.neighborhood} · ${property.city}/MG · ${dealLabel(property.deal)}`;
   const condoParts = [];
   if (property.condoName) condoParts.push(property.condoName);
   if (property.condoFee) {
@@ -173,10 +229,16 @@ function renderGalleryFrame() {
   if (condoParts.length) {
     meta.textContent += ` · ${condoParts.join(' · ')}`;
   }
-  const desc = String(property.description || '').trim();
+  const specsHtml = buildSpecs(property);
+  if (specs) {
+    specs.innerHTML = specsHtml;
+    specs.hidden = !specsHtml;
+  }
+  const detailText = propertyDetailText(property);
   if (description) {
-    description.textContent = desc;
-    description.hidden = !desc;
+    description.textContent = detailText;
+    description.hidden = !detailText;
+    description.classList.toggle('is-farm', property.type === 'Fazenda');
   }
   price.textContent = formatPrice(property);
   whatsapp.href = whatsappLink(property);
@@ -186,6 +248,44 @@ function renderGalleryFrame() {
   next.hidden = !multi;
 }
 
+async function shareCurrentProperty() {
+  const property = galleryState.property;
+  if (!property?.id) return;
+  const url = propertyShareUrl(property.id);
+  const title = `${property.id} — ${property.title}`;
+  const text = `Olha este imóvel: ${property.title} (${property.neighborhood}, ${property.city}/MG)`;
+
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text, url });
+      return;
+    }
+  } catch (error) {
+    if (error?.name === 'AbortError') return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    const btn = document.querySelector('[data-gallery-share]');
+    if (btn) {
+      const original = btn.textContent;
+      btn.textContent = 'Link copiado!';
+      setTimeout(() => {
+        btn.textContent = original;
+      }, 1800);
+    }
+  } catch {
+    window.prompt('Copie o link deste imóvel:', url);
+  }
+}
+
+function setPropertyDeepLink(propertyId) {
+  const url = new URL(window.location.href);
+  if (propertyId) url.searchParams.set('id', propertyId);
+  else url.searchParams.delete('id');
+  window.history.replaceState({}, '', url);
+}
+
 function openGallery(propertyId, startIndex = 0) {
   const cached = PROPERTIES.find((item) => item.id === propertyId);
   if (!cached) return;
@@ -193,6 +293,7 @@ function openGallery(propertyId, startIndex = 0) {
   const root = ensureGallery();
   root.hidden = false;
   document.body.classList.add('gallery-open');
+  setPropertyDeepLink(propertyId);
 
   galleryState = {
     property: cached,
@@ -227,6 +328,11 @@ function closeGallery() {
   root.hidden = true;
   document.body.classList.remove('gallery-open');
   galleryState = { property: null, index: 0 };
+  if (document.querySelector('[data-listing-grid]') && getParams().get('id')) {
+    setPropertyDeepLink('');
+    syncListingControls();
+    renderListing();
+  }
 }
 
 function stepGallery(delta) {
@@ -261,6 +367,7 @@ function getParams() {
 
 function filterProperties(source, params) {
   let list = [...source];
+  const id = (params.get('id') || '').trim();
   const deal = params.get('deal');
   const type = params.get('tipo');
   const where = (params.get('onde') || '').trim().toLowerCase();
@@ -269,6 +376,9 @@ function filterProperties(source, params) {
   const beds = Number(params.get('quartos') || 0);
   const sort = params.get('ordem') || 'recentes';
 
+  if (id) {
+    list = list.filter((item) => String(item.id).toLowerCase() === id.toLowerCase());
+  }
   if (deal === 'venda' || deal === 'aluguel' || deal === 'ambos') {
     list = list.filter((item) => matchesDeal(item.deal, deal));
   }
@@ -277,7 +387,7 @@ function filterProperties(source, params) {
   }
   if (where) {
     list = list.filter((item) =>
-      `${item.neighborhood} ${item.city} ${item.title} ${item.type} ${item.keywords || ''} ${item.description || ''}`.toLowerCase().includes(where)
+      `${item.neighborhood} ${item.city} ${item.title} ${item.type} ${item.keywords || ''} ${item.description || ''} ${item.farmNotes || ''}`.toLowerCase().includes(where)
     );
   }
   if (min) list = list.filter((item) => item.price >= min);
@@ -325,6 +435,7 @@ function renderListing() {
       Apartamento: 'Apartamentos',
       Terreno: 'Terrenos',
       Chácara: 'Chácaras',
+      Fazenda: 'Fazendas',
       Rural: 'Imóveis rurais',
       Comercial: 'Imóveis comerciais'
     };
@@ -412,13 +523,13 @@ function setupHomeSearch() {
   if (!form) return;
 
   const modeButtons = form.querySelectorAll('.deal button');
-  let deal = 'venda';
+  let deal = '';
 
   modeButtons.forEach((button) => {
     button.addEventListener('click', () => {
       modeButtons.forEach((item) => item.classList.remove('active'));
       button.classList.add('active');
-      deal = button.dataset.deal || 'venda';
+      deal = button.dataset.deal || '';
     });
   });
 
@@ -427,12 +538,16 @@ function setupHomeSearch() {
     const type = form.querySelector('[name="tipo"]').value;
     const where = form.querySelector('[name="onde"]').value.trim();
     const params = new URLSearchParams();
-    params.set('deal', deal);
+    if (deal) params.set('deal', deal);
     if (type && type !== 'Todos os imóveis') params.set('tipo', type);
     if (where) params.set('onde', where);
-    window.location.href = `imoveis.html?${params.toString()}`;
+    const query = params.toString();
+    window.location.href = query ? `imoveis.html?${query}` : 'imoveis.html';
   });
 }
+
+let listingPageBound = false;
+let deepLinkOpened = false;
 
 function setupListingPage() {
   if (!document.querySelector('[data-listing-grid]')) return;
@@ -440,19 +555,28 @@ function setupListingPage() {
   syncListingControls();
   renderListing();
 
+  const deepId = getParams().get('id');
+  if (!deepLinkOpened && deepId && PROPERTIES.some((item) => item.id === deepId)) {
+    deepLinkOpened = true;
+    openGallery(deepId, 0);
+  }
+
+  if (listingPageBound) return;
+  listingPageBound = true;
+
   document.querySelectorAll('[data-deal-chip]').forEach((chip) => {
-    chip.addEventListener('click', () => updateParams({ deal: chip.dataset.dealChip || '' }));
+    chip.addEventListener('click', () => updateParams({ deal: chip.dataset.dealChip || '', id: '' }));
   });
   document.querySelectorAll('[data-type-chip]').forEach((chip) => {
-    chip.addEventListener('click', () => updateParams({ tipo: chip.dataset.typeChip }));
+    chip.addEventListener('click', () => updateParams({ tipo: chip.dataset.typeChip, id: '' }));
   });
   document.querySelectorAll('[data-beds-chip]').forEach((chip) => {
-    chip.addEventListener('click', () => updateParams({ quartos: chip.dataset.bedsChip }));
+    chip.addEventListener('click', () => updateParams({ quartos: chip.dataset.bedsChip, id: '' }));
   });
 
   const sortSelect = document.querySelector('[name="ordem"]');
   if (sortSelect) {
-    sortSelect.addEventListener('change', () => updateParams({ ordem: sortSelect.value }));
+    sortSelect.addEventListener('change', () => updateParams({ ordem: sortSelect.value, id: '' }));
   }
 
   const applyBtn = document.querySelector('[data-apply-filters]');
@@ -465,7 +589,8 @@ function setupListingPage() {
       updateParams({
         onde: document.querySelector('[name="onde"]')?.value.trim() || '',
         min: document.querySelector('[name="min"]')?.value || '',
-        max: document.querySelector('[name="max"]')?.value || ''
+        max: document.querySelector('[name="max"]')?.value || '',
+        id: ''
       });
       if (panel && window.matchMedia('(max-width: 1100px)').matches) {
         panel.hidden = true;
@@ -480,6 +605,7 @@ function setupListingPage() {
       window.history.replaceState({}, '', url);
       syncListingControls();
       renderListing();
+      closeGallery();
     });
   }
 
@@ -895,6 +1021,12 @@ async function boot() {
   setupHomeSearch();
   setupGalleryTriggers();
   ensureGallery();
+
+  const deepId = new URLSearchParams(window.location.search).get('id');
+  if (deepId && !document.querySelector('[data-listing-grid]')) {
+    window.location.replace(`imoveis.html?id=${encodeURIComponent(deepId)}`);
+    return;
+  }
 
   // Não bloqueia logo/menu/rodapé enquanto os imóveis carregam (crítico no mobile)
   const propsPromise = OtonStore.listPublicProperties()
