@@ -40,7 +40,8 @@ const ALTERS = [
   'ALTER TABLE properties ADD COLUMN built_area REAL NOT NULL DEFAULT 0',
   'ALTER TABLE properties ADD COLUMN hectares REAL NOT NULL DEFAULT 0',
   'ALTER TABLE properties ADD COLUMN price_per_hectare REAL NOT NULL DEFAULT 0',
-  "ALTER TABLE properties ADD COLUMN farm_notes TEXT NOT NULL DEFAULT ''"
+  "ALTER TABLE properties ADD COLUMN farm_notes TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE properties ADD COLUMN available_from TEXT NOT NULL DEFAULT ''"
 ];
 
 const client = createClient({ url, authToken });

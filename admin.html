@@ -53,6 +53,7 @@
               <select id="filter-status">
                 <option value="">Todos os status</option>
                 <option value="disponivel">Disponível</option>
+                <option value="em_breve">Disponível em breve</option>
                 <option value="alugado">Alugado</option>
                 <option value="vendido">Vendido</option>
               </select>
@@ -107,9 +108,15 @@
                   <span class="req">STATUS</span>
                   <select name="status" required>
                     <option value="disponivel">Disponível</option>
+                    <option value="em_breve">Disponível em breve</option>
                     <option value="alugado">Alugado</option>
                     <option value="vendido">Vendido</option>
                   </select>
+                </label>
+                <label data-field-group="available-from" hidden>
+                  <span class="req">PREVISÃO DE DISPONIBILIDADE</span>
+                  <input name="availableFrom" type="date" />
+                  <span class="hint" style="margin:6px 0 0;display:block;">Data em que o imóvel deve ficar disponível para aluguel ou venda.</span>
                 </label>
                 <label>
                   <span class="req">TIPO</span>

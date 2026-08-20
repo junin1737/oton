@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS properties (
   keywords TEXT NOT NULL DEFAULT '',
   featured INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'disponivel',
+  available_from TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );

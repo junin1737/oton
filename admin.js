@@ -57,6 +57,7 @@
   }
 
   function statusBadge(status) {
+    if (status === 'em_breve') return { className: 'soon', label: 'Em breve' };
     if (status === 'alugado') return { className: 'rented', label: 'Alugado' };
     if (status === 'vendido') return { className: 'sold', label: 'Vendido' };
     return { className: 'available', label: 'Disponível' };
@@ -169,6 +170,15 @@
     } else if (form.priceFarm.value) {
       form.price.value = form.priceFarm.value;
     }
+
+    syncAvailableFromField();
+  }
+
+  function syncAvailableFromField() {
+    const isSoon = form.status.value === 'em_breve';
+    setGroupHidden('available-from', !isSoon);
+    form.availableFrom.required = isSoon;
+    if (!isSoon) form.availableFrom.value = '';
   }
 
   function syncFarmTotalPrice() {
@@ -192,6 +202,7 @@
     form.pricePerHectare.value = '';
     form.priceFarm.value = '';
     form.farmNotes.value = '';
+    form.availableFrom.value = '';
     farmPriceManual = false;
     draftPhotos = [];
     revokeUrls();
@@ -230,6 +241,7 @@
     form.condoFee.value = property.condoFee || '';
     form.description.value = property.description || '';
     form.farmNotes.value = property.farmNotes || '';
+    form.availableFrom.value = property.availableFrom || '';
     form.keywords.value = property.keywords || '';
     form.featured.checked = Boolean(property.featured);
     farmPriceManual = true;
@@ -317,6 +329,11 @@
       return;
     }
 
+    if (form.status.value === 'em_breve' && !form.availableFrom.value) {
+      toast('Informe a previsão de disponibilidade.', 'err');
+      return;
+    }
+
     const saveBtn = document.querySelector('#save-btn');
     saveBtn.disabled = true;
     saveBtn.textContent = 'Salvando...';
@@ -346,7 +363,8 @@
         description: isFazenda ? '' : form.description.value,
         farmNotes: isFazenda ? form.farmNotes.value : '',
         keywords: form.keywords.value,
-        featured: form.featured.checked
+        featured: form.featured.checked,
+        availableFrom: form.status.value === 'em_breve' ? form.availableFrom.value : ''
       };
 
       const photosDraft = draftPhotos.map((photo) => {
@@ -1188,6 +1206,7 @@
     farmPriceManual = false;
     syncTypeFields();
   });
+  form.status.addEventListener('change', syncAvailableFromField);
   form.hectares.addEventListener('input', () => {
     farmPriceManual = false;
     syncFarmTotalPrice();
@@ -1203,6 +1222,7 @@
 
   form.addEventListener('submit', saveProperty);
   syncTypeFields();
+  syncAvailableFromField();
 
   document.querySelector('#keyword-suggestions')?.addEventListener('click', (event) => {
     const btn = event.target.closest('[data-keyword]');

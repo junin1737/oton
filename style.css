@@ -494,6 +494,16 @@ button, input, select { font: inherit; }
   color: var(--blue);
   font-weight: 600;
 }
+.card .soon-line {
+  margin: -6px 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9a6b16;
+}
+.photo span.badge-soon {
+  background: var(--yellow);
+  color: var(--deep);
+}
 .card strong {
   display: block;
   font-size: 15px;

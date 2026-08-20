@@ -268,6 +268,7 @@ function mapProperty(row) {
     keywords: row.keywords || '',
     featured: Boolean(row.featured),
     status: row.status || 'disponivel',
+    availableFrom: row.available_from || '',
     createdAt: Number(row.created_at) || 0,
     updatedAt: Number(row.updated_at) || 0
   };
@@ -300,7 +301,11 @@ async function getPropertyFull(client, id) {
 
 async function listPublicPropertiesLight(client) {
   const rows = await client.execute({
-    sql: `SELECT * FROM properties WHERE status = 'disponivel' ORDER BY updated_at DESC`
+    sql: `SELECT * FROM properties
+          WHERE status IN ('disponivel', 'em_breve')
+          ORDER BY
+            CASE status WHEN 'disponivel' THEN 0 ELSE 1 END,
+            updated_at DESC`
   });
   if (!rows.rows.length) return [];
 
@@ -335,7 +340,6 @@ async function listPublicPropertiesLight(client) {
     const lightUrl = !rawUrl || isEmbedded ? '' : rawUrl;
     return {
       ...base,
-      status: 'disponivel',
       image: lightUrl,
       photos: lightUrl ? [{ id: cover.id, url: lightUrl, name: cover.name || '' }] : [],
       photoIds: cover ? [cover.id] : [],
@@ -463,7 +467,7 @@ export default {
       const publicPropertyMatch = path.match(/^\/properties\/public\/([^/]+)$/);
       if (publicPropertyMatch && request.method === 'GET') {
         const full = await getPropertyFull(client, decodeURIComponent(publicPropertyMatch[1]));
-        if (!full || full.status !== 'disponivel') {
+        if (!full || (full.status !== 'disponivel' && full.status !== 'em_breve')) {
           return json({ error: 'Imóvel não encontrado.' }, 404, cors);
         }
         const photos = (full.photos || []).map((photo) => ({
@@ -526,13 +530,18 @@ export default {
           id = `OR-${String(max + 1).padStart(3, '0')}`;
         }
         const existing = await getPropertyFull(client, id);
-        const status = ['disponivel', 'alugado', 'vendido'].includes(body.status) ? body.status : 'disponivel';
+        const status = ['disponivel', 'em_breve', 'alugado', 'vendido'].includes(body.status)
+          ? body.status
+          : 'disponivel';
+        const availableFrom = status === 'em_breve'
+          ? String(body.availableFrom || '').trim().slice(0, 10)
+          : '';
         await client.execute({
           sql: `INSERT INTO properties (
             id, title, type, deal, neighborhood, city, price, area, built_area, hectares, price_per_hectare,
             bedrooms, bathrooms, suites, parking, condo_name, condo_fee, description, farm_notes, keywords,
-            featured, status, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            featured, status, available_from, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             title=excluded.title, type=excluded.type, deal=excluded.deal, neighborhood=excluded.neighborhood,
             city=excluded.city, price=excluded.price, area=excluded.area, built_area=excluded.built_area,
@@ -540,7 +549,8 @@ export default {
             bedrooms=excluded.bedrooms, bathrooms=excluded.bathrooms, suites=excluded.suites,
             parking=excluded.parking, condo_name=excluded.condo_name, condo_fee=excluded.condo_fee,
             description=excluded.description, farm_notes=excluded.farm_notes, keywords=excluded.keywords,
-            featured=excluded.featured, status=excluded.status, updated_at=excluded.updated_at`,
+            featured=excluded.featured, status=excluded.status, available_from=excluded.available_from,
+            updated_at=excluded.updated_at`,
           args: [
             id,
             String(body.title || '').trim(),
@@ -564,6 +574,7 @@ export default {
             String(body.keywords || '').trim(),
             body.featured ? 1 : 0,
             status,
+            availableFrom,
             existing?.createdAt || now,
             now
           ]

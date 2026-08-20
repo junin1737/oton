@@ -18,6 +18,28 @@ function dealLabel(deal) {
   return 'À venda';
 }
 
+function formatAvailableFrom(dateStr) {
+  const raw = String(dateStr || '').trim();
+  if (!raw) return '';
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return raw;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  if (Number.isNaN(date.getTime())) return raw;
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+function cardBadgeLabel(property) {
+  if (property.status === 'em_breve') return 'Em breve';
+  return dealLabel(property.deal);
+}
+
+function availableSoonLine(property) {
+  if (property.status !== 'em_breve') return '';
+  const when = formatAvailableFrom(property.availableFrom);
+  if (when) return `<p class="soon-line">Disponível a partir de ${when}</p>`;
+  return `<p class="soon-line">Estará disponível em breve</p>`;
+}
+
 function matchesDeal(itemDeal, filterDeal) {
   if (!filterDeal) return true;
   if (filterDeal === 'venda') return itemDeal === 'venda' || itemDeal === 'ambos';
@@ -130,9 +152,9 @@ function cardHtml(property) {
     : 'style="background:linear-gradient(145deg,#d7e2ec,#b9c9d8)"';
 
   return `
-    <article class="card" data-id="${property.id}" data-open-gallery="${property.id}" role="button" tabindex="0" aria-label="Ver detalhes de ${property.title}">
+    <article class="card${property.status === 'em_breve' ? ' card-soon' : ''}" data-id="${property.id}" data-open-gallery="${property.id}" role="button" tabindex="0" aria-label="Ver detalhes de ${property.title}">
       <div class="photo" ${photoStyle}>
-        <span>${dealLabel(property.deal)}</span>
+        <span class="${property.status === 'em_breve' ? 'badge-soon' : ''}">${cardBadgeLabel(property)}</span>
         <span class="code">${property.id}</span>
         ${count > 1 ? `<span class="photo-count">${count} fotos</span>` : ''}
       </div>
@@ -141,6 +163,7 @@ function cardHtml(property) {
         <h3>${property.title}</h3>
         <p>${property.neighborhood} · ${property.city}/MG</p>
         ${condoLine(property)}
+        ${availableSoonLine(property)}
         <strong>${formatPrice(property)}</strong>
         <div class="specs">${buildSpecs(property)}</div>
         <a class="card-whatsapp" href="${whatsappLink(property)}" target="_blank" rel="noopener">Chamar no WhatsApp</a>
@@ -236,7 +259,7 @@ function renderGalleryFrame() {
   image.alt = `${property.title} — foto ${index + 1}`;
   counter.textContent = `${index + 1} / ${photos.length}`;
   title.textContent = property.title;
-  meta.textContent = `${property.id} · ${property.type} · ${property.neighborhood} · ${property.city}/MG · ${dealLabel(property.deal)}`;
+  meta.textContent = `${property.id} · ${property.type} · ${property.neighborhood} · ${property.city}/MG · ${cardBadgeLabel(property)}`;
   const condoParts = [];
   if (property.condoName) condoParts.push(property.condoName);
   if (property.condoFee) {
@@ -244,6 +267,10 @@ function renderGalleryFrame() {
   }
   if (condoParts.length) {
     meta.textContent += ` · ${condoParts.join(' · ')}`;
+  }
+  if (property.status === 'em_breve') {
+    const when = formatAvailableFrom(property.availableFrom);
+    meta.textContent += when ? ` · Disponível a partir de ${when}` : ' · Estará disponível em breve';
   }
   const specsHtml = buildSpecs(property);
   if (specs) {
@@ -409,6 +436,7 @@ function getParams() {
 function filterProperties(source, params) {
   let list = [...source];
   const id = (params.get('id') || '').trim();
+  const status = params.get('status') || 'disponivel';
   const deal = params.get('deal');
   const type = params.get('tipo');
   const where = (params.get('onde') || '').trim().toLowerCase();
@@ -419,6 +447,12 @@ function filterProperties(source, params) {
 
   if (id) {
     list = list.filter((item) => String(item.id).toLowerCase() === id.toLowerCase());
+  } else if (status === 'em_breve') {
+    list = list.filter((item) => item.status === 'em_breve');
+  } else if (status === 'todos') {
+    list = list.filter((item) => item.status === 'disponivel' || item.status === 'em_breve');
+  } else {
+    list = list.filter((item) => (item.status || 'disponivel') === 'disponivel');
   }
   if (deal === 'venda' || deal === 'aluguel' || deal === 'ambos') {
     list = list.filter((item) => matchesDeal(item.deal, deal));
@@ -438,6 +472,9 @@ function filterProperties(source, params) {
   if (sort === 'menor') list.sort((a, b) => a.price - b.price);
   if (sort === 'maior') list.sort((a, b) => b.price - a.price);
   if (sort === 'recentes') list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  if (sort === 'disponibilidade') {
+    list.sort((a, b) => String(a.availableFrom || '9999').localeCompare(String(b.availableFrom || '9999')));
+  }
 
   return list;
 }
@@ -445,9 +482,22 @@ function filterProperties(source, params) {
 function renderFeatured() {
   const grid = document.querySelector('[data-featured-grid]');
   if (!grid) return;
-  const featured = PROPERTIES.filter((item) => item.featured).slice(0, 3);
-  const fallback = featured.length ? featured : PROPERTIES.slice(0, 3);
+  const available = PROPERTIES.filter((item) => (item.status || 'disponivel') === 'disponivel');
+  const featured = available.filter((item) => item.featured).slice(0, 3);
+  const fallback = featured.length ? featured : available.slice(0, 3);
   grid.innerHTML = fallback.map(cardHtml).join('');
+}
+
+function renderComingSoon() {
+  const section = document.querySelector('[data-coming-soon-section]');
+  const grid = document.querySelector('[data-coming-soon-grid]');
+  if (!section || !grid) return;
+  const soon = PROPERTIES
+    .filter((item) => item.status === 'em_breve')
+    .sort((a, b) => String(a.availableFrom || '9999').localeCompare(String(b.availableFrom || '9999')))
+    .slice(0, 6);
+  section.hidden = soon.length === 0;
+  grid.innerHTML = soon.map(cardHtml).join('');
 }
 
 function renderListing() {
@@ -465,6 +515,7 @@ function renderListing() {
     if (idParam) {
       title.textContent = `Imóvel ${idParam}`;
     } else {
+    const statusParam = params.get('status') || 'disponivel';
     const dealParam = params.get('deal');
     const dealText = dealParam === 'aluguel'
       ? 'para alugar'
@@ -485,9 +536,10 @@ function renderListing() {
       Comercial: 'Imóveis comerciais'
     };
     const parts = [];
-    if (type && type !== 'Todos') parts.push(plurals[type] || type);
+    if (statusParam === 'em_breve') parts.push('Imóveis disponíveis em breve');
+    else if (type && type !== 'Todos') parts.push(plurals[type] || type);
     else parts.push('Imóveis');
-    if (dealText) parts.push(dealText);
+    if (statusParam !== 'em_breve' && dealText) parts.push(dealText);
     if (where) parts.push(`em ${where}`);
     else parts.push('em Tiros/MG e região');
     title.textContent = parts.join(' ');
@@ -516,6 +568,7 @@ function renderListing() {
 
 function syncListingControls() {
   const params = getParams();
+  const status = params.get('status') || 'disponivel';
   const deal = params.get('deal') || '';
   const type = params.get('tipo') || 'Todos';
   const where = params.get('onde') || '';
@@ -524,6 +577,10 @@ function syncListingControls() {
   const beds = params.get('quartos') || '';
   const sort = params.get('ordem') || 'recentes';
 
+  document.querySelectorAll('[data-status-chip]').forEach((chip) => {
+    const value = chip.dataset.statusChip || 'disponivel';
+    chip.classList.toggle('active', value === status);
+  });
   document.querySelectorAll('[data-deal-chip]').forEach((chip) => {
     const value = chip.dataset.dealChip || '';
     chip.classList.toggle('active', value === deal);
@@ -547,6 +604,7 @@ function syncListingControls() {
   const count = document.querySelector('[data-filter-count]');
   if (count) {
     let active = 0;
+    if (status && status !== 'disponivel') active += 1;
     if (deal) active += 1;
     if (type && type !== 'Todos') active += 1;
     if (where) active += 1;
@@ -559,7 +617,14 @@ function syncListingControls() {
 function updateParams(next) {
   const url = new URL(window.location.href);
   Object.entries(next).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '' || value === '0' || value === 'Todos') {
+    if (
+      value === undefined
+      || value === null
+      || value === ''
+      || value === '0'
+      || value === 'Todos'
+      || (key === 'status' && value === 'disponivel')
+    ) {
       url.searchParams.delete(key);
     } else {
       url.searchParams.set(key, value);
@@ -613,6 +678,9 @@ function setupListingPage() {
   if (listingPageBound) return;
   listingPageBound = true;
 
+  document.querySelectorAll('[data-status-chip]').forEach((chip) => {
+    chip.addEventListener('click', () => updateParams({ status: chip.dataset.statusChip || 'disponivel', id: '' }));
+  });
   document.querySelectorAll('[data-deal-chip]').forEach((chip) => {
     chip.addEventListener('click', () => updateParams({ deal: chip.dataset.dealChip || '', id: '' }));
   });
@@ -1097,10 +1165,12 @@ async function boot() {
   ]);
 
   renderFeatured();
+  renderComingSoon();
   setupListingPage();
   // Capas embutidas (base64) carregam em segundo plano, 2 por vez
   hydratePropertyCovers(PROPERTIES).then(() => {
     renderFeatured();
+    renderComingSoon();
     if (document.querySelector('[data-listing-grid]')) {
       setupListingPage();
     }
