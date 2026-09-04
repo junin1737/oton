@@ -367,31 +367,40 @@
         availableFrom: form.status.value === 'em_breve' ? form.availableFrom.value : ''
       };
 
-      const photosDraft = draftPhotos.map((photo) => {
-        if (photo.existing) {
-          return {
-            id: photo.id,
-            source: photo.source,
-            url: photo.originalUrl || null,
-            name: photo.name
-          };
-        }
+      const photosDraft = draftPhotos.map((photo, index) => {
+        const remoteUrl = photo.originalUrl
+          || (photo.url && !String(photo.url).startsWith('blob:') ? photo.url : '');
         return {
-          blob: photo.blob,
-          name: photo.name
+          id: photo.id,
+          source: photo.source,
+          name: photo.name || `foto-${index + 1}.jpg`,
+          blob: photo.blob || null,
+          url: remoteUrl || null,
+          originalUrl: remoteUrl || null,
+          existing: Boolean(photo.existing)
         };
       });
+
+      const invalid = photosDraft.find((photo) => {
+        const hasRemote = photo.url && !String(photo.url).startsWith('data:') && !String(photo.url).startsWith('blob:');
+        const hasData = String(photo.url || '').startsWith('data:');
+        return !photo.blob && !hasRemote && !hasData;
+      });
+      if (invalid) {
+        throw new Error(`A foto "${invalid.name}" não está pronta. Remova e adicione novamente.`);
+      }
 
       const saved = await OtonStore.saveProperty(payload, photosDraft, {
         onProgress: ({ phase, current, total }) => {
           if (phase === 'upload') {
-            saveBtn.textContent = `Enviando foto ${current}/${total}...`;
+            saveBtn.textContent = `Enviando fotos ${current}/${total}...`;
           } else {
-            saveBtn.textContent = 'Finalizando...';
+            saveBtn.textContent = 'Finalizando cadastro...';
           }
         }
       });
-      toast(`Imóvel ${saved.id} salvo com ${draftPhotos.length} foto(s).`);
+      const savedPhotos = Array.isArray(saved.photos) ? saved.photos.length : draftPhotos.length;
+      toast(`Imóvel ${saved.id} salvo com ${savedPhotos} foto(s).`);
       resetForm();
       await renderList();
     } catch (error) {

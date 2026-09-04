@@ -423,82 +423,142 @@ const OtonStore = (() => {
     return api('/admin/upload-photo', {
       method: 'POST',
       auth: true,
-      timeoutMs: 90000,
-      retries: 1,
+      timeoutMs: 120000,
+      retries: 2,
       body: { propertyId, dataUrl, name, id, index }
     });
   }
 
+  async function mapPool(items, concurrency, workerFn) {
+    const results = new Array(items.length);
+    let cursor = 0;
+
+    async function runWorker() {
+      while (cursor < items.length) {
+        const index = cursor;
+        cursor += 1;
+        results[index] = await workerFn(items[index], index);
+      }
+    }
+
+    const poolSize = Math.max(1, Math.min(concurrency, items.length));
+    await Promise.all(Array.from({ length: poolSize }, () => runWorker()));
+    return results;
+  }
+
+  function isRemotePhotoUrl(url) {
+    const value = String(url || '');
+    return Boolean(value) && !value.startsWith('data:') && !value.startsWith('blob:');
+  }
+
+  async function preparePhotoForUpload(item, index) {
+    const name = item.name || `foto-${index + 1}.jpg`;
+    const remoteUrl = item.originalUrl || item.url || '';
+
+    if (!item.blob && isRemotePhotoUrl(remoteUrl)) {
+      return {
+        id: item.id && !String(item.id).startsWith('local-') ? item.id : undefined,
+        source: item.source || 'r2',
+        url: remoteUrl,
+        name
+      };
+    }
+
+    let dataUrl = '';
+    if (item.blob) {
+      dataUrl = await blobToDataUrl(item.blob);
+    } else if (String(remoteUrl).startsWith('data:')) {
+      dataUrl = remoteUrl;
+    }
+
+    if (!dataUrl) {
+      throw new Error(`A foto "${name}" não está pronta para envio. Remova e adicione novamente.`);
+    }
+
+    return { needsUpload: true, dataUrl, name, id: item.id, index };
+  }
+
   async function saveProperty(data, photosDraft = [], { onProgress } = {}) {
+    if (!Array.isArray(photosDraft) || photosDraft.length < 1) {
+      throw new Error('Adicione pelo menos 1 foto do imóvel.');
+    }
+
     let propertyId = String(data.id || '').trim();
     if (!propertyId) {
       propertyId = await nextCode();
     }
 
-    const readyPhotos = [];
     const total = photosDraft.length;
+    let completed = 0;
 
+    const prepared = [];
     for (let index = 0; index < photosDraft.length; index += 1) {
-      const item = photosDraft[index];
-      if (typeof onProgress === 'function') {
-        onProgress({
-          phase: 'upload',
-          current: index + 1,
-          total,
-          name: item.name || `foto-${index + 1}.jpg`
-        });
+      prepared.push(await preparePhotoForUpload(photosDraft[index], index));
+    }
+
+    const readyPhotos = await mapPool(prepared, 3, async (item, index) => {
+      try {
+        if (!item.needsUpload) {
+          completed += 1;
+          if (typeof onProgress === 'function') {
+            onProgress({ phase: 'upload', current: completed, total, name: item.name });
+          }
+          return item;
+        }
+
+        let lastError = null;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          try {
+            const uploaded = await uploadPhoto({
+              propertyId,
+              dataUrl: item.dataUrl,
+              name: item.name,
+              id: item.id && !String(item.id).startsWith('local-') ? item.id : undefined,
+              index
+            });
+            completed += 1;
+            if (typeof onProgress === 'function') {
+              onProgress({ phase: 'upload', current: completed, total, name: item.name });
+            }
+            return {
+              id: uploaded.id,
+              source: uploaded.source || 'r2',
+              url: uploaded.url,
+              name: uploaded.name || item.name
+            };
+          } catch (error) {
+            lastError = error;
+            await new Promise((resolve) => setTimeout(resolve, 700 * (attempt + 1)));
+          }
+        }
+        throw new Error(`Falha ao enviar "${item.name}": ${lastError?.message || 'erro de rede'}`);
+      } catch (error) {
+        throw error;
       }
+    });
 
-      const existingUrl = item.url || item.originalUrl || '';
-      const alreadyRemote = existingUrl
-        && !existingUrl.startsWith('data:')
-        && !existingUrl.startsWith('blob:');
-
-      if (alreadyRemote && !item.blob) {
-        readyPhotos.push({
-          id: item.id && !String(item.id).startsWith('local-') ? item.id : undefined,
-          source: item.source || 'r2',
-          url: existingUrl,
-          name: item.name || `foto-${index + 1}.jpg`
-        });
-        continue;
-      }
-
-      let dataUrl = '';
-      if (item.blob) {
-        dataUrl = await blobToDataUrl(item.blob);
-      } else if (String(existingUrl).startsWith('data:')) {
-        dataUrl = existingUrl;
-      }
-      if (!dataUrl) continue;
-
-      const uploaded = await uploadPhoto({
-        propertyId,
-        dataUrl,
-        name: item.name || `foto-${index + 1}.jpg`,
-        id: item.id && !String(item.id).startsWith('local-') ? item.id : undefined,
-        index
-      });
-
-      readyPhotos.push({
-        id: uploaded.id,
-        source: uploaded.source || 'r2',
-        url: uploaded.url,
-        name: uploaded.name || item.name || `foto-${index + 1}.jpg`
-      });
+    if (readyPhotos.length !== total || readyPhotos.some((photo) => !photo?.url)) {
+      throw new Error(`Só ${readyPhotos.filter((p) => p?.url).length} de ${total} fotos foram enviadas. Tente salvar de novo.`);
     }
 
     if (typeof onProgress === 'function') {
       onProgress({ phase: 'save', current: total, total });
     }
 
-    return api('/properties', {
+    const saved = await api('/properties', {
       method: 'POST',
       auth: true,
-      timeoutMs: 60000,
+      timeoutMs: 90000,
       retries: 1,
       body: { ...data, id: propertyId, photos: readyPhotos }
     });
+
+    const savedCount = Array.isArray(saved?.photos) ? saved.photos.length : readyPhotos.length;
+    if (savedCount < total) {
+      throw new Error(`O imóvel foi gravado, mas só ${savedCount} de ${total} fotos ficaram salvas. Abra o imóvel e salve de novo.`);
+    }
+
+    return saved;
   }
 
   async function deleteProperty(id) {
@@ -520,7 +580,7 @@ const OtonStore = (() => {
     return api(`/properties/public/${encodeURIComponent(id)}`, { timeoutMs: 25000, retries: 1 });
   }
 
-  async function compressImage(file, { maxWidth = 1400, quality = 0.72 } = {}) {
+  async function compressImage(file, { maxWidth = 1280, quality = 0.7 } = {}) {
     if (!file.type.startsWith('image/')) {
       throw new Error('Arquivo inválido. Envie apenas imagens.');
     }
