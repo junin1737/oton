@@ -622,6 +622,31 @@ export default {
         return json({ ok: true }, 200, cors);
       }
 
+      if (path === '/admin/upload-photo' && request.method === 'POST') {
+        const auth = await requireAdmin(request, client);
+        if (!auth) return json({ error: 'Não autorizado.' }, 401, cors);
+        if (!env.MEDIA) {
+          return json({ error: 'R2 não está ativo neste Worker.' }, 503, cors);
+        }
+        const body = await readJson(request);
+        if (!body) return json({ error: 'JSON inválido.' }, 400, cors);
+        const propertyId = String(body.propertyId || '').trim();
+        if (!propertyId) return json({ error: 'propertyId é obrigatório.' }, 400, cors);
+        const dataUrl = body.dataUrl || body.url || '';
+        if (!String(dataUrl).startsWith('data:')) {
+          return json({ error: 'Envie a foto em data URL (base64).' }, 400, cors);
+        }
+        const persisted = await persistPhoto(
+          env,
+          request,
+          propertyId,
+          { id: body.id, url: dataUrl, name: body.name },
+          Number(body.index) || 0
+        );
+        if (!persisted) return json({ error: 'Não foi possível processar a foto.' }, 400, cors);
+        return json(persisted, 200, cors);
+      }
+
       if (path === '/admin/migrate-photos' && request.method === 'POST') {
         const auth = await requireAdmin(request, client);
         if (!auth) return json({ error: 'Não autorizado.' }, 401, cors);

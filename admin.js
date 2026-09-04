@@ -382,13 +382,21 @@
         };
       });
 
-      const saved = await OtonStore.saveProperty(payload, photosDraft);
+      const saved = await OtonStore.saveProperty(payload, photosDraft, {
+        onProgress: ({ phase, current, total }) => {
+          if (phase === 'upload') {
+            saveBtn.textContent = `Enviando foto ${current}/${total}...`;
+          } else {
+            saveBtn.textContent = 'Finalizando...';
+          }
+        }
+      });
       toast(`Imóvel ${saved.id} salvo com ${draftPhotos.length} foto(s).`);
       resetForm();
       await renderList();
     } catch (error) {
       console.error(error);
-      toast('Não foi possível salvar o imóvel.', 'err');
+      toast(error?.message || 'Não foi possível salvar o imóvel.', 'err');
     } finally {
       saveBtn.disabled = false;
       saveBtn.textContent = 'Salvar imóvel';

@@ -419,27 +419,85 @@ const OtonStore = (() => {
     return data.code;
   }
 
-  async function saveProperty(data, photosDraft = []) {
-    const photos = [];
-    for (const item of photosDraft) {
-      let url = item.url || '';
-      if (item.blob) url = await blobToDataUrl(item.blob);
-      if (!url && item.existing && item.id) {
-        // foto já existente sem blob — precisa da url atual
-        url = item.url || '';
+  async function uploadPhoto({ propertyId, dataUrl, name, id, index = 0 }) {
+    return api('/admin/upload-photo', {
+      method: 'POST',
+      auth: true,
+      timeoutMs: 90000,
+      retries: 1,
+      body: { propertyId, dataUrl, name, id, index }
+    });
+  }
+
+  async function saveProperty(data, photosDraft = [], { onProgress } = {}) {
+    let propertyId = String(data.id || '').trim();
+    if (!propertyId) {
+      propertyId = await nextCode();
+    }
+
+    const readyPhotos = [];
+    const total = photosDraft.length;
+
+    for (let index = 0; index < photosDraft.length; index += 1) {
+      const item = photosDraft[index];
+      if (typeof onProgress === 'function') {
+        onProgress({
+          phase: 'upload',
+          current: index + 1,
+          total,
+          name: item.name || `foto-${index + 1}.jpg`
+        });
       }
-      if (!url) continue;
-      photos.push({
+
+      const existingUrl = item.url || item.originalUrl || '';
+      const alreadyRemote = existingUrl
+        && !existingUrl.startsWith('data:')
+        && !existingUrl.startsWith('blob:');
+
+      if (alreadyRemote && !item.blob) {
+        readyPhotos.push({
+          id: item.id && !String(item.id).startsWith('local-') ? item.id : undefined,
+          source: item.source || 'r2',
+          url: existingUrl,
+          name: item.name || `foto-${index + 1}.jpg`
+        });
+        continue;
+      }
+
+      let dataUrl = '';
+      if (item.blob) {
+        dataUrl = await blobToDataUrl(item.blob);
+      } else if (String(existingUrl).startsWith('data:')) {
+        dataUrl = existingUrl;
+      }
+      if (!dataUrl) continue;
+
+      const uploaded = await uploadPhoto({
+        propertyId,
+        dataUrl,
+        name: item.name || `foto-${index + 1}.jpg`,
         id: item.id && !String(item.id).startsWith('local-') ? item.id : undefined,
-        url,
-        name: item.name || 'foto.jpg'
+        index
       });
+
+      readyPhotos.push({
+        id: uploaded.id,
+        source: uploaded.source || 'r2',
+        url: uploaded.url,
+        name: uploaded.name || item.name || `foto-${index + 1}.jpg`
+      });
+    }
+
+    if (typeof onProgress === 'function') {
+      onProgress({ phase: 'save', current: total, total });
     }
 
     return api('/properties', {
       method: 'POST',
       auth: true,
-      body: { ...data, photos }
+      timeoutMs: 60000,
+      retries: 1,
+      body: { ...data, id: propertyId, photos: readyPhotos }
     });
   }
 
@@ -496,6 +554,7 @@ const OtonStore = (() => {
     getPublicProperty,
     getProperty,
     saveProperty,
+    uploadPhoto,
     deleteProperty,
     nextCode,
     photoToUrl,
